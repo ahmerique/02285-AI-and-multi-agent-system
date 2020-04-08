@@ -1,12 +1,15 @@
 package searchclient;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Random;
 
 public class State {
     private static final Random RNG = new Random(1);
 
-    public static int MAX_ROW = LevelItems.getInstance().getMAX_ROW();
-    public static int MAX_COL = LevelItems.getInstance().getMAX_COL();
+    public static int MAX_ROW;
+    public static int MAX_COL;
 
     public int agentRow;
     public int agentCol;
@@ -21,9 +24,10 @@ public class State {
     // this.walls[row][col] is true if there's a wall at (row, col)
     //
 
-    public static boolean[][] walls = LevelItems.getInstance().getWalls();
-    public static char[][] goals = LevelItems.getInstance().getGoals();
-    public char[][] boxes = new char[MAX_ROW][MAX_COL];
+    public static boolean[][] walls;
+    public static char[][] goals;
+
+    public char[][] boxes;
 
     public State parent;
     public Command action;
@@ -39,6 +43,8 @@ public class State {
         } else {
             this.g = parent.g() + 1;
         }
+
+        this.boxes = new char[MAX_ROW][MAX_COL];
     }
 
     public int g() {
@@ -135,13 +141,13 @@ public class State {
     }
 
     public ArrayList<State> extractPlan() {
-		ArrayList<State> plan = new ArrayList<>(); // LinkedList<Node> plan = new LinkedList<Node>();
+		ArrayList<State> plan = new ArrayList<>();
         State n = this;
         while (!n.isInitialState()) {
             plan.add(n);
             n = n.parent;
         }
-        Collections.reverse(plan); // No need of this if using a LinkedList
+        Collections.reverse(plan);
         return plan;
     }
 

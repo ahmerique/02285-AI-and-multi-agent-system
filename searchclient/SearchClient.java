@@ -69,14 +69,11 @@ public class SearchClient {
                 case 5://Goal state
                     //Iteration over the rows of the initial state while reading the final state in parallel
                     for(int i = 0; i < serverMessageList.size(); i++){
-                        System.err.println(line);/////////////////////////////////////////////////////////////
                         String rowline = serverMessageList.get(i);
 
                         for (int j = 0; j < rowline.length(); j++) {
                             char chr = rowline.charAt(j);
                             char chrGoal = line.charAt(j);
-                            System.err.println("----------- ROW = " + Integer.toString(i));
-                            System.err.println("----------- COL = " + Integer.toString(j));
             
                             if (chr == '+') { // Wall.
                                 State.walls[i][j] = true;
@@ -109,7 +106,7 @@ public class SearchClient {
         
         System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
         System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
-		System.err.println("Done here!");
+		System.err.println("Done initializing");
     }
 
     public ArrayList<State> Search(Strategy strategy) {

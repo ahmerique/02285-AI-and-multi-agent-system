@@ -81,7 +81,7 @@ public class SearchClient {
                                 SAorMA += 1;
                                 //this.initialState.agents[i][col] = chr; //TODO initialize as object with color
                                 this.initialState.agentRow = i;
-                                this.initialState.agentRow = j;
+                                this.initialState.agentCol = j;
                             } else if ('A' <= chr && chr <= 'Z') { // Box.
                                 this.initialState.boxes[i][j] = chr; //TODO initialize as object with color
                             }  else if (chr == ' ') {
@@ -106,6 +106,8 @@ public class SearchClient {
         
         System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
         System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
+        System.err.println("----------- AGENT_ROW = " + Integer.toString(State.MAX_ROW));
+        System.err.println("----------- AGENT_COL = " + Integer.toString(State.MAX_COL));
 		System.err.println("Done initializing");
     }
 

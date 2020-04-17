@@ -2,70 +2,113 @@ package searchclient;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashMap;
 
 public class SearchClient {
     public State initialState;
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
-        // Read lines specifying colors
+        
+        int SAorMA = 0; //SA if 1 at the end of the file reading, else MA
+        List<String> serverMessageList = new ArrayList<String>(); //All lines of the Initial level
+        int max_col = 0; //Maximum column reached
+        int row = 0; //Iteration variable
+        int countpart = 0; //Part of the initial file read
+        HashMap<String, String> colors = new HashMap<String, String>(); //All colors
+
         String line = serverMessages.readLine();
-        if (line.matches("^[a-z]+:\\s*[0-9A-Z](\\s*,\\s*[0-9A-Z])*\\s*$")) {
-            System.err.println("Error, client does not support colors.");
-            System.exit(1);
-        }
 
-        boolean agentFound = false;
-        ArrayList<String> serverMessageList = new ArrayList<String>();
-        
-        
-        // Compute MAX_ROW and MAX_COL and create an instance of LevelItems 
-        int col_length = 0;
-        int row_length = 0;
-        
-        while (!line.equals("")) {
-            serverMessageList.add(line);
-            col_length = Math.max(col_length, line.length());
+        while (!line.equals("#end")) {
+            System.err.println(line);/////////////////////////////////////////////////////////////
+
+            if (line.charAt(0) == '#'){
+                countpart += 1;
+            } 
+            
             line = serverMessages.readLine();
-            row_length ++;
-        }
+            
+            switch(countpart){
+                case 1://Domain
+                    //No action needed. Name of the domain can be saved here.
+                    break;
 
-        LevelItems levelItems = LevelItems.createInstance(row_length, col_length);
+                case 2://Level Name
+                    //No action needed. Name of the level can be saved here.
+                    break;
 
-
-        int row = 0;
-        this.initialState = new State(null);
-
-        //while (!line.equals("")) {
-        for (String rowLine : serverMessageList) {
-            for (int col = 0; col < rowLine.length(); col++) {
-                char chr = rowLine.charAt(col);
-
-                if (chr == '+') { // Wall.
-                    levelItems.setWall(true,row,col); //this.initialState.walls[row][col] = true;
-                } else if ('0' <= chr && chr <= '9') { // Agent.
-                    if (agentFound) {
-                        System.err.println("Error, not a single agent level");
-                        System.exit(1);
+                case 3://Colors
+                    while(line.charAt(0) != '#'){
+                        String[] str = line.split(": ");
+                        String[] objects = str[1].split(", ");
+                        //We add each color to the colors dictionnary
+                        for (String object : objects){
+                            colors.put(object, str[0]); //Considering that objects are only initialized once
+                        }
+                        line = serverMessages.readLine();
                     }
-                    agentFound = true;
-                    this.initialState.agentRow = row;
-                    this.initialState.agentCol = col;
-                } else if ('A' <= chr && chr <= 'Z') { // Box.
-                    this.initialState.boxes[row][col] = chr;
-                } else if ('a' <= chr && chr <= 'z') { // Goal.
-                    levelItems.setGoal(chr,row, col);//this.initialState.goals[row][col] = chr;
-                } else if (chr == ' ') {
-                    // Free space.
-                } else {
-                    System.err.println("Error, read invalid level character: " + (int) chr);
-                    System.exit(1);
-                }
-            }
-            //line = serverMessages.readLine();
-            row++;
-        }
+                    break;
 
+                case 4://Initial state
+                    //Features all the information regarding the level
+                    while(line.charAt(0) != '#'){
+                        serverMessageList.add(line);
+                        max_col = Math.max(max_col, line.length());
+                        line = serverMessages.readLine();
+                    }
+
+                    State.MAX_COL = max_col;
+                    State.MAX_ROW = serverMessageList.size();
+                    this.initialState = new State(null); //Initial state
+
+                    State.walls = new boolean[State.MAX_ROW][State.MAX_COL];
+                    State.goals = new char[State.MAX_ROW][State.MAX_COL];
+                    break;
+
+                case 5://Goal state
+                    //Iteration over the rows of the initial state while reading the final state in parallel
+                    for(int i = 0; i < serverMessageList.size(); i++){
+                        String rowline = serverMessageList.get(i);
+
+                        for (int j = 0; j < rowline.length(); j++) {
+                            char chr = rowline.charAt(j);
+                            char chrGoal = line.charAt(j);
+            
+                            if (chr == '+') { // Wall.
+                                State.walls[i][j] = true;
+                            } else if ('0' <= chr && chr <= '9') { // Agent.
+                                SAorMA += 1;
+                                //this.initialState.agents[i][col] = chr; //TODO initialize as object with color
+                                this.initialState.agentRow = i;
+                                this.initialState.agentCol = j;
+                            } else if ('A' <= chr && chr <= 'Z') { // Box.
+                                this.initialState.boxes[i][j] = chr; //TODO initialize as object with color
+                            }  else if (chr == ' ') {
+                                // Free space.
+                            } else {
+                                System.err.println("Error, read invalid level character: " + (int) chr);
+                                System.exit(1);
+                            }
+                            
+                            //TODO remove if goals are added as Box objects parameters
+                            if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal.
+                                State.goals[i][j] = Character.toLowerCase(chr);//TODO goal definition not needed if linked to boxes
+                            }
+                        }
+                        
+                        line = serverMessages.readLine();
+                    }
+                    break;
+            }
+            
+        }
+        
+        System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
+        System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
+        System.err.println("----------- AGENT_ROW = " + Integer.toString(State.MAX_ROW));
+        System.err.println("----------- AGENT_COL = " + Integer.toString(State.MAX_COL));
+		System.err.println("Done initializing");
     }
 
     public ArrayList<State> Search(Strategy strategy) {
@@ -103,7 +146,8 @@ public class SearchClient {
         BufferedReader serverMessages = new BufferedReader(new InputStreamReader(System.in));
 
         // Use stderr to print to console
-        System.err.println("SearchClient initializing. I am sending this using the error output stream.");
+        System.err.println("SearchClient initializing.");
+        System.out.println("Baguettes' engine");
 
         // Read level and create the initial state of the problem
         SearchClient client = new SearchClient(serverMessages);

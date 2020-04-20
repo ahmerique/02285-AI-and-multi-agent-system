@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 
+
+
+// TODO UPDATE WITH STATE CHANGES
 public class SearchClient {
     public State initialState;
 
@@ -79,7 +82,7 @@ public class SearchClient {
                                 State.walls[i][j] = true;
                             } else if ('0' <= chr && chr <= '9') { // Agent.
                                 SAorMA += 1;
-                                //this.initialState.agents[i][col] = chr; //TODO initialize as object with color
+                                //this.initialState.agents[i][column] = chr; //TODO initialize as object with color
                                 this.initialState.agentRow = i;
                                 this.initialState.agentCol = j;
                             } else if ('A' <= chr && chr <= 'Z') { // Box.

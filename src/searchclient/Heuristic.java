@@ -1,16 +1,85 @@
 package searchclient;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 
-
-// TODO UPDATE WITH STATE CHANGES
 public abstract class Heuristic implements Comparator<State> {
+
+    private HashMap<Character, Coordinate> goalsByID = new HashMap<>();
+    private ArrayList<Character> goalList = new ArrayList<>();
+
     public Heuristic(State initialState) {
         // Here's a chance to pre-process the static parts of the level.
+
+        // Get list of goals
+
+        for (int row = 1; row < State.MAX_ROW - 1; row++) {
+            for (int col = 1; col < State.MAX_COL - 1; col++) {
+                char g = State.goals[row][col];
+                if ('a' <= g && g <= 'z') {
+                    goalsByID.put(g, new Coordinate(row, col));
+                    goalList.add(g);
+                }
+            }
+        }
+
+    }
+
+    private Coordinate getBoxCoordinate(State n, char ID) {
+        for (int row = 1; row < State.MAX_ROW -1; row++) {
+            for (int col = 1; col < State.MAX_COL -1; col++) {
+                char b = Character.toLowerCase(n.boxes[row][col]);
+                if (b == ID) {
+                    return new Coordinate(row, col);
+                }
+            }
+        }
+        return new Coordinate(0, 0);
+    }
+
+    public int stupid_h(State n) {
+        int uncleared_goals = 0;
+        for (int row = 1; row < State.MAX_ROW - 1; row++) {
+            for (int col = 1; col < State.MAX_COL - 1; col++) {
+                char g = State.goals[row][col];
+                char b = Character.toLowerCase(n.boxes[row][col]);
+                if (g > 0 && b != g) {
+                    uncleared_goals++;
+                }
+            }
+        }
+
+        return uncleared_goals;
+    }
+
+    public int manhattan_h(State n) {
+        int sumH = 0;
+        int minAgentBox =  State.MAX_COL+State.MAX_ROW;
+
+        for (char ID : goalsByID.keySet()) {
+            Coordinate goalCoordinate = goalsByID.get(ID);
+            Coordinate boxCoordinate = getBoxCoordinate(n, ID);
+
+            int newH = Math.abs(boxCoordinate.row - goalCoordinate.row)
+                    + Math.abs(boxCoordinate.col - goalCoordinate.col);
+
+            sumH += newH;
+
+            int newAgentBox = Math.abs(n.agentRow - boxCoordinate.row) + Math.abs(n.agentCol - boxCoordinate.col) - 1;
+
+            if (minAgentBox>newAgentBox){
+                minAgentBox = newAgentBox;
+            }
+
+        }
+        //System.err.println(sumH);
+        return sumH+minAgentBox;
     }
 
     public int h(State n) {
-        throw new NotImplementedException();
+        //return stupid_h(n);
+        return manhattan_h(n);
     }
 
     public abstract int f(State n);

@@ -122,7 +122,7 @@ public class State {
     /**
      * TODO Add color management
      * If not the same color return null. So it won't be able to move that way.
-     * Might not be necessary if we are in a problème allégé
+     * Might not be necessary if we are in a relaxed problem
      */
     private String boxAt(Coordinate expectedBoxCoordinate) {
         String objectId = localIdByCoordinate.get(expectedBoxCoordinate);

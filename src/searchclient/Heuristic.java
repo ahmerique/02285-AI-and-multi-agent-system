@@ -23,7 +23,7 @@ public abstract class Heuristic implements Comparator<State> {
         }
 
         this.coordinateByGoal = State.goalWithCoordinate;
-
+ 
     }
 
 

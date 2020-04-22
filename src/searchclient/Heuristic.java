@@ -6,76 +6,128 @@ import java.util.HashMap;
 
 public abstract class Heuristic implements Comparator<State> {
 
-    private HashMap<Character, Coordinate> goalsByID = new HashMap<>();
-    private ArrayList<Character> goalList = new ArrayList<>();
+    private HashMap<String, Box> boxById = new HashMap<>();
+    private HashMap<Goal, Coordinate> coordinateByGoal = new HashMap<>();
 
-    public Heuristic(State initialState) {
-        // Here's a chance to pre-process the static parts of the level.
 
-        // Get list of goals
+    /**
+     * Instantiate a new Heuristic
+     * Using static lists goalWithCoordinate and realBoardObjectsById
+     */
+    public Heuristic() {
 
-        for (int row = 1; row < State.MAX_ROW - 1; row++) {
-            for (int col = 1; col < State.MAX_COL - 1; col++) {
-                char g = State.goals[row][col];
-                if ('a' <= g && g <= 'z') {
-                    goalsByID.put(g, new Coordinate(row, col));
-                    goalList.add(g);
+        for( Hashmap.Entry<String, BoardObject> box : State.realBoardObjectsById.entrySet()) {
+            if(box.getValue() instanceof Box){
+                this.boxById.put(box.getKey(), box.getValue());
+            }
+        }
+
+        this.coordinateByGoal = State.goalWithCoordinate;
+
+    }
+
+
+    /**
+     * Get the Coordinate of a Box at a given State n
+     * @param n the State
+     * @param id the id of the Box
+     * @return the coordinates of the given Box at the given State
+     */
+    private Coordinate getBoxCoordinate(State n, String id) {
+        if(this.boxById.containsKey(id)) {
+            return n.getLocalCoordinateById().get(id);
+        } else {
+            return null;
+        }
+    }
+
+
+    /**
+     * Get a State and compute coordinates of all Boxes at this given State
+     * @param n the State
+     * @return a Hashmap containing all boxes object as keys and their coordinates as value
+     */
+    private Coordinate getAllBoxesCoordinate(State n) {
+        HashMap<Box, Coordinate> coordinateByBox = new HashMap<>();
+
+        for(HashMap.Entry<String, Box> box : this.boxById.entrySet()) {
+            coordinateByBox.put(box.getValue(), this.getBoxCoordinate(n, box.getKey()));
+        }
+
+        return coordinateByBox;
+
+    }
+
+    /**
+	 * Gets two coordinates as variables and compute the manhattan distance
+	 * @param c1 coodinate 1
+	 * @param c2 coordinate 2
+	 * @return manhattan distance from c1 to c2
+	 */
+	private double manhattan(Coordinate c1, Coordinate c2) {
+		return Math.abs(c1.getRow()-c2.getRow()) + Math.abs(c1.getColumn()-c2.getColumn());
+    }
+    
+
+    /**
+	 * Receives the state and the heuristic choice as parameters and calculates the distance for each box and player
+	 * @param n state
+	 * @param method heuristics choice
+	 * @return sum of distances for player and boxes
+	 */
+	public double calculate_distance(State n, String method) {
+        double sum = 0;
+        HashMap<Box, Coordinate> coordinateByBox = this.getAllBoxesCoordinate(n);
+		
+        /*
+            Room for improvement:
+            Also take into accoutn the distance between boxes and agents
+        
+        */
+		
+		//Get the distance from boxes to goal and add the minimum distance to the Sum
+        for (HashMap<Box, Coordinate> box : coordinateByBox.entrySet()) {
+			double distanceMinimum = getMinimumDistanceFromBoxToGoals(box.getKey(), box.getValue(), method);
+			sum += distanceMinimum;
+		}
+		
+		return sum;
+    }
+    
+
+    /**
+	 * Get a box, its coordinate and a method as inputs
+     * Calculates minimum distance from the given Box to the coordinate of each goals using the input method
+	 * @param box
+     * @param box_coordinates
+	 * @param method
+	 * @return distance from obj to closest coordinate in the hashset
+	 */
+	private double getMinimumDistanceFromBoxToGoals(Box box, Coordinate box_coordinates, String method) {
+		double minimumDistance = 9999999; // Initialize the minimum distance at a very high value
+		
+		//For each goal whose color match with the box color, calculate the distance according to given heuristic choice
+		for (HashMap.Entry<Goal, Coordinate> goal : this.coordinateByGoal.entrySet()) {
+			double distance;
+			if (method.equals("manhattan")){
+                // Check if colors match
+                if (box.getColor().equals(goal.getKey().getColor())) { 
+                    distance = manhattan(box_coordinates, goal.getValue());
                 }
             }
-        }
-
-    }
-
-    private Coordinate getBoxCoordinate(State n, char ID) {
-        for (int row = 1; row < State.MAX_ROW -1; row++) {
-            for (int col = 1; col < State.MAX_COL -1; col++) {
-                char b = Character.toLowerCase(n.boxes[row][col]);
-                if (b == ID) {
-                    return new Coordinate(row, col);
-                }
+            /* 
+                We can add other methods here    
+            else
+                distance = other_methode()
+                */
+			if (distance < minimumDistance) {
+                minimumDistance = distance;
             }
-        }
-        return new Coordinate(0, 0);
-    }
+		}
+		return minDist;
+	}
 
-    public int stupid_h(State n) {
-        int uncleared_goals = 0;
-        for (int row = 1; row < State.MAX_ROW - 1; row++) {
-            for (int col = 1; col < State.MAX_COL - 1; col++) {
-                char g = State.goals[row][col];
-                char b = Character.toLowerCase(n.boxes[row][col]);
-                if (g > 0 && b != g) {
-                    uncleared_goals++;
-                }
-            }
-        }
 
-        return uncleared_goals;
-    }
-
-    public int manhattan_h(State n) {
-        int sumH = 0;
-        int minAgentBox =  State.MAX_COL+State.MAX_ROW;
-
-        for (char ID : goalsByID.keySet()) {
-            Coordinate goalCoordinate = goalsByID.get(ID);
-            Coordinate boxCoordinate = getBoxCoordinate(n, ID);
-
-            int newH = Math.abs(boxCoordinate.row - goalCoordinate.row)
-                    + Math.abs(boxCoordinate.col - goalCoordinate.col);
-
-            sumH += newH;
-
-            int newAgentBox = Math.abs(n.agentRow - boxCoordinate.row) + Math.abs(n.agentCol - boxCoordinate.col) - 1;
-
-            if (minAgentBox>newAgentBox){
-                minAgentBox = newAgentBox;
-            }
-
-        }
-        //System.err.println(sumH);
-        return sumH+minAgentBox;
-    }
 
     public int h(State n) {
         //return stupid_h(n);

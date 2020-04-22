@@ -8,9 +8,10 @@ import static searchclient.Command.dirToRowChange;
 public class State {
 
     // STATIC ATTRIBUTES
-    public static HashMap<String, BoardObject> realBoardObjectsById;
+    public static HashMap<Goal, Coordinate> goalWithCoordinate;
+    public static HashMap<String, BoardObject> realBoardObjectsById; // Agent and Boxes
     public static HashMap<Coordinate, Character> goalByCoordinate;
-    public static HashMap<Coordinate, BoardObject> realBoardObjectByCoordinate;
+    public static HashMap<Coordinate, BoardObject> realBoardObjectByCoordinate; // Agent and Boxes
 
     public static boolean[][] walls;
     public static int MAX_ROW;
@@ -64,6 +65,13 @@ public class State {
         Box boxObject = (Box) realBoardObjectsById.get(boxId);
         return boxObject.getCurrentGoal().getCoordinate() == localCoordinateById.get(boxId);
     }
+
+    public HashMap<String, Coordinate> getLocalCoordinateById() {
+        return this.localCoordinateById;
+    }
+
+}
+
 
     public ArrayList<State> getExpandedStates() {
         ArrayList<State> expandedStates = new ArrayList<>(Command.EVERY.length);

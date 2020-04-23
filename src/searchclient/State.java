@@ -10,7 +10,7 @@ public class State {
     // STATIC ATTRIBUTES
     public static HashMap<Goal, Coordinate> goalWithCoordinate;
     public static HashMap<String, BoardObject> realBoardObjectsById; // Agent and Boxes
-    public static HashMap<Coordinate, Character> goalByCoordinate;
+    public static HashMap<Coordinate, Goal> goalByCoordinate; 
     public static HashMap<Coordinate, BoardObject> realBoardObjectByCoordinate; // Agent and Boxes
 
     public static boolean[][] walls;
@@ -69,6 +69,46 @@ public class State {
     public HashMap<String, Coordinate> getLocalCoordinateById() {
         return this.localCoordinateById;
     }
+
+    //Method to set a new object (agent:0, box:1, goal:2) in the State
+    public static boolean setNewStateObject(int row, int column, int type, char id, String color) {
+        
+        Coordinate coord = new Coordinate(row,col);
+        
+        switch(type){
+            case 0://Agent
+                finalId = genCharacter.toString(id);
+                Agent newAgent = new Agent(finalId, color);
+                State.realBoardObjectsById.put(newAgent, coord);
+                State.realBoardObjectByCoordinate.put(coord, newAgent);
+
+            case 1://Box
+                finalId = generateUniqueId(id);
+                Box newBox = new Box(finalId, color);
+                State.realBoardObjectsById.put(newBox, coord);
+                State.realBoardObjectByCoordinate.put(coord, newBox);
+
+            case 2://Goal
+                finalId = generateUniqueId(id);
+                Goal newGoal = new Goal(finalId, color, coord, id);
+                State.goalWithCoordinate.put(newGoal, coord);
+                State.goalByCoordinate.put(coord, newGoal);
+
+	    }
+	}
+
+    private String generateUniqueId(char id){
+        String stringId = Character.toString(id);
+        int iterator = 0;
+
+        //Process until id is new
+        while(realBoardObjectsById.containsKey(stringId + Integer.toString(iterator))){
+            iterator += 1;
+		}
+
+        return(stringId + Integer.toString(iterator));
+	}
+
 
 }
 

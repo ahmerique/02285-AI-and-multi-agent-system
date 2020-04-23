@@ -65,8 +65,13 @@ public class SearchClient {
                     State.MAX_ROW = serverMessageList.size();
                     this.initialState = new State(null); //Initial state
 
+                    //Initialize static attributes of State
                     State.walls = new boolean[State.MAX_ROW][State.MAX_COL];
-                    State.goals = new char[State.MAX_ROW][State.MAX_COL];
+                    State.goalWithCoordinate = new HashMap<String, BoardObject>();
+                    State.realBoardObjectsById = new HashMap<String, BoardObject>();
+                    State.goalByCoordinate = new HashMap<Coordinate, Goal>();
+                    State.realBoardObjectByCoordinate = new HashMap<Coordinate, BoardObject>();
+
                     break;
 
                 case 5://Goal state

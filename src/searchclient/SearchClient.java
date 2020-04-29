@@ -67,7 +67,7 @@ public class SearchClient {
 
                     //Initialize static attributes of State
                     State.walls = new boolean[State.MAX_ROW][State.MAX_COL];
-                    State.goalWithCoordinate = new HashMap<String, BoardObject>();
+                    State.goalWithCoordinate = new HashMap<Goal, Coordinate>();
                     State.realBoardObjectsById = new HashMap<String, BoardObject>();
                     State.goalByCoordinate = new HashMap<Coordinate, Goal>();
                     State.realBoardObjectByCoordinate = new HashMap<Coordinate, BoardObject>();
@@ -83,25 +83,23 @@ public class SearchClient {
                             char chr = rowline.charAt(j);
                             char chrGoal = line.charAt(j);
             
-                            if (chr == '+') { // Wall.
+                            if (chr == '+') { // Wall
                                 State.walls[i][j] = true;
-                            } else if ('0' <= chr && chr <= '9') { // Agent.
+                            } else if ('0' <= chr && chr <= '9') { // Agent
                                 SAorMA += 1;
-                                //this.initialState.agents[i][column] = chr; //TODO initialize as object with color
-                                this.initialState.agentRow = i;
-                                this.initialState.agentCol = j;
-                            } else if ('A' <= chr && chr <= 'Z') { // Box.
-                                this.initialState.boxes[i][j] = chr; //TODO initialize as object with color
-                            }  else if (chr == ' ') {
-                                // Free space.
+                                State.setNewStateObject(i,j,0,chr,colors.get(chr));
+                            } else if ('A' <= chr && chr <= 'Z') { // Box
+                                State.setNewStateObject(i,j,1,chr,colors.get(chr));
+                            }  else if (chr == ' ') { // Free space
+                                // Nothing
                             } else {
                                 System.err.println("Error, read invalid level character: " + (int) chr);
                                 System.exit(1);
                             }
                             
                             //TODO remove if goals are added as Box objects parameters
-                            if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal.
-                                State.goals[i][j] = Character.toLowerCase(chr);//TODO goal definition not needed if linked to boxes
+                            if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal
+                                State.setNewStateObject(i,j,2,chrGoal,colors.get(chrGoal));
                             }
                         }
                         
@@ -112,10 +110,11 @@ public class SearchClient {
             
         }
         
+        //Match Boxes and Goals 
+        State.matchGoalsAndBoxes();
+
         System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
         System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
-        System.err.println("----------- AGENT_ROW = " + Integer.toString(State.MAX_ROW));
-        System.err.println("----------- AGENT_COL = " + Integer.toString(State.MAX_COL));
 		System.err.println("Done initializing");
     }
 

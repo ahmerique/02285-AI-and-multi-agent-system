@@ -77,7 +77,7 @@ public class State {
         
         switch(type){
             case 0://Agent
-                finalId = genCharacter.toString(id);
+                finalId = Character.toString(id);
                 Agent newAgent = new Agent(finalId, color);
                 State.realBoardObjectsById.put(newAgent, coord);
                 State.realBoardObjectByCoordinate.put(coord, newAgent);
@@ -95,6 +95,14 @@ public class State {
                 State.goalByCoordinate.put(coord, newGoal);
 
 	    }
+	}
+
+    public static boolean matchGoalsAndBoxes(){
+        /* TODO
+        for box in Boxes:
+            goals = [goal in Goals where goal.id[0] == box.id[0]]
+            box.objective = goals[0]
+        */
 	}
 
     private String generateUniqueId(char id){

@@ -8,6 +8,7 @@ public class Box extends BoardObject {
      */
     private Goal currentGoal;
     private boolean isOnGoal;
+    private final char letter;
 
 
     /**
@@ -16,8 +17,9 @@ public class Box extends BoardObject {
      * @param id    the id
      * @param color the color
      */
-    public Box(String id, String color) {
+    public Box(String id, String color, char letter) {
         super(id, color);
+        this.letter= letter;
     }
 
     /**
@@ -38,6 +40,10 @@ public class Box extends BoardObject {
 
     public void setOnGoal(boolean onGoal) {
         isOnGoal = onGoal;
+    }
+
+    public char getLetter() {
+        return letter;
     }
 
 }

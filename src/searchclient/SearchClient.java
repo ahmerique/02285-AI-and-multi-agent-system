@@ -87,9 +87,9 @@ public class SearchClient {
                                 State.walls[i][j] = true;
                             } else if ('0' <= chr && chr <= '9') { // Agent
                                 SAorMA += 1;
-                                State.setNewStateObject(i,j,0,chr,colors.get(chr));
+                                State.setNewStateObject(i,j,0,chr,colors.get(Character.toString(chr)));
                             } else if ('A' <= chr && chr <= 'Z') { // Box
-                                State.setNewStateObject(i,j,1,chr,colors.get(chr));
+                                State.setNewStateObject(i,j,1,chr,colors.get(Character.toString(chr)));
                             }  else if (chr == ' ') { // Free space
                                 // Nothing
                             } else {
@@ -99,7 +99,7 @@ public class SearchClient {
                             
                             //TODO remove if goals are added as Box objects parameters
                             if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal
-                                State.setNewStateObject(i,j,2,chrGoal,colors.get(chrGoal));
+                                State.setNewStateObject(i,j,2,chrGoal,colors.get(Character.toString(chrGoal)));
                             }
                         }
                         
@@ -135,7 +135,7 @@ public class SearchClient {
 
             State leafState = strategy.getAndRemoveLeaf();
 
-            if (leafState.isGoalState()) {
+            if (leafState.isSubGoalState()) {
                 return leafState.extractPlan();
             }
 
@@ -169,13 +169,16 @@ public class SearchClient {
                     strategy = new Strategy.StrategyDFS();
                     break;
                 case "-astar":
-                    strategy = new Strategy.StrategyBestFirst(new Heuristic.AStar(client.initialState));
+                    //strategy = new Strategy.StrategyBestFirst(new Heuristic.AStar(client.initialState));
+                    strategy = new Strategy.StrategyBFS();
                     break;
                 case "-wastar":
-                    strategy = new Strategy.StrategyBestFirst(new Heuristic.WeightedAStar(client.initialState, 5));
+                    //strategy = new Strategy.StrategyBestFirst(new Heuristic.WeightedAStar(client.initialState, 5));
+                    strategy = new Strategy.StrategyBFS();
                     break;
                 case "-greedy":
-                    strategy = new Strategy.StrategyBestFirst(new Heuristic.Greedy(client.initialState));
+                    //strategy = new Strategy.StrategyBestFirst(new Heuristic.Greedy(client.initialState));
+                    strategy = new Strategy.StrategyBFS();
                     break;
                 default:
                     strategy = new Strategy.StrategyBFS();

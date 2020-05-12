@@ -1,4 +1,4 @@
-package searchclient;
+package src.searchclient;
 
 public class Memory {
     private static final Runtime RUNTIME = Runtime.getRuntime();

@@ -5,9 +5,7 @@ public class Goal extends BoardObject {
 
     private final char letter;
     private final Coordinate coordinate;
-    private int weight;
-    private int estimatedSteps;
-
+    private int priority;
     /**
      * Instantiate a new Goal.
      *
@@ -32,4 +30,21 @@ public class Goal extends BoardObject {
         return letter;
     }
 
+
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    @Override
+    public String toString() {
+        return "Goal{" +
+                "letter=" + letter +
+                ", coordinate=" + coordinate +
+                ", priority=" + priority +
+                '}';
+    }
 }

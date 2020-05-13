@@ -1,8 +1,4 @@
-package searchclient;
-
-import com.google.common.graph.GraphBuilder;
-import com.google.common.graph.MutableGraph;
-import com.google.common.primitives.Ints;
+package src.searchclient;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -18,26 +14,29 @@ public class SearchClient {
     public State initialState;
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
-        
+
+
         boolean isMA; //SA if 1 at the end of the file reading, else MA
-        List<String> serverMessageList = new ArrayList<String>(); //All lines of the Initial level
+        List<String> serverMessageList = new ArrayList<>(); //All lines of the Initial level
         int max_col = 0; //Maximum column reached
         int row = 0; //Iteration variable
         int countpart = 0; //Part of the initial file read
-        HashMap<String, String> colors = new HashMap<String, String>(); //All colors
+        HashMap<String, String> colors = new HashMap<>(); //All colors
 
         String line = serverMessages.readLine();
 
+        System.err.println("Begin reading from server");
         while (!line.equals("#end")) {
-            System.err.println(line);/////////////////////////////////////////////////////////////
 
-            if (line.charAt(0) == '#'){
+            //System.err.println(line);/////////////////////////////////////////////////////////////
+
+            if (line.charAt(0) == '#') {
                 countpart += 1;
-            } 
-            
+            }
+
             line = serverMessages.readLine();
-            
-            switch(countpart){
+
+            switch (countpart) {
                 case 1://Domain
                     //No action needed. Name of the domain can be saved here.
                     break;
@@ -48,11 +47,11 @@ public class SearchClient {
                     break;
 
                 case 3://Colors
-                    while(line.charAt(0) != '#'){
+                    while (line.charAt(0) != '#') {
                         String[] str = line.split(": ");
                         String[] objects = str[1].split(", ");
                         //We add each color to the colors dictionnary
-                        for (String object : objects){
+                        for (String object : objects) {
                             colors.put(object, str[0]); //Considering that objects are only initialized once
                         }
                         line = serverMessages.readLine();
@@ -61,27 +60,26 @@ public class SearchClient {
 
                 case 4://Initial state
                     //Features all the information regarding the level
-                    while(line.charAt(0) != '#'){
+                    while (line.charAt(0) != '#') {
                         serverMessageList.add(line);
                         max_col = Math.max(max_col, line.length());
                         line = serverMessages.readLine();
                     }
 
                     //Initialize static attributes of State
-                    this.initialState = new State(null); //Initial state
                     State.MAX_COL = max_col;
                     State.MAX_ROW = serverMessageList.size();
-                    State.wallByCoordinate = new HashMap<Coordinate, Boolean>();
-                    State.goalWithCoordinate = new HashMap<Goal, Coordinate>();
-                    State.realBoardObjectsById = new HashMap<String, BoardObject>();
-                    State.goalByCoordinate = new HashMap<Coordinate, Goal>();
-                    State.realBoardObjectByCoordinate = new HashMap<Coordinate, BoardObject>();
+                    State.wallByCoordinate = new HashMap<>();
+                    State.goalWithCoordinate = new HashMap<>();
+                    State.realBoardObjectsById = new HashMap<>();
+                    State.goalByCoordinate = new HashMap<>();
+                    State.realBoardObjectByCoordinate = new HashMap<>();
 
                     break;
 
                 case 5://Goal state
                     //Iteration over the rows of the initial state while reading the final state in parallel
-                    for(int i = 0; i < serverMessageList.size(); i++){
+                    for (int i = 0; i < serverMessageList.size(); i++) {
                         String rowline = serverMessageList.get(i);
 
                         for (int j = 0; j < rowline.length(); j++) {
@@ -90,39 +88,43 @@ public class SearchClient {
                             if (chr == '+') { // Wall
                                 State.wallByCoordinate.put(new Coordinate(i, j), true);
                             } else if ('0' <= chr && chr <= '9') { // Agent
-                                State.setNewStateObject(i,j,0,chr,colors.get(Character.toString(chr)));
+                                State.setNewStateObject(i, j, "AGENT", chr, colors.get(Character.toString(chr)));
                             } else if ('A' <= chr && chr <= 'Z') { // Box
-                                State.setNewStateObject(i,j,1,chr,colors.get(Character.toString(chr)));
-                            }  else if (chr == ' ') { // Free space
+                                State.setNewStateObject(i, j, "BOX", chr, colors.get(Character.toString(chr)));
+                            } else if (chr == ' ') { // Free space
                                 // Nothing
                             } else {
-                                System.err.println("Error, read invalid level character: " + (int) chr);
                                 System.exit(1);
                             }
 
                             char chrGoal = line.charAt(j);
                             //TODO remove if goals are added as Box objects parameters
                             if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal
-                                State.setNewStateObject(i,j,2,chrGoal,colors.get(Character.toString(chrGoal)));
+                                State.setNewStateObject(i, j, "GOAL", chrGoal, colors.get(Character.toString(chrGoal)));
                             }
                         }
-                        
                         line = serverMessages.readLine();
                     }
                     break;
             }
-            
+
         }
 
-
         // Preprocess data
+        System.err.println("PREPROCESSING");
 
-        int MAX_GOAL_PRIORITY = State.MAX_COL * State.MAX_ROW;
+        // TODO define those values
+        int MAX_GOAL_PRIORITY = 9; //State.MAX_COL * State.MAX_ROW; 1000;
+        int NORMAL_GOAL_PRIORITY = 1;
+        int LOW_GOAL_PRIORITY = 0;
+
         HashMap<Coordinate, Integer> degreeMap = new HashMap<>();
         HashSet<Coordinate> deadEndCaseSet = new HashSet<>();
         HashSet<Coordinate> corridorCaseSet = new HashSet<>();
         HashSet<Coordinate> cornerCaseSet = new HashSet<>();
-        ArrayList<ArrayList<Coordinate>> deadEndlist = new ArrayList<>();
+        ArrayList<ArrayList<Coordinate>> busyDeadEndList = new ArrayList<>();
+        ArrayList<ArrayList<Coordinate>> emptyDeadEndList = new ArrayList<>();
+        // La flemme de trouver comment grouper les corridors donc pas de corridorList pour le moment
 
         // create degree map (number of non-wall case in the vicinity)
         for (int i = 0; i < State.MAX_ROW; i++) {
@@ -145,20 +147,19 @@ public class SearchClient {
                         deadEndCaseSet.add(tempCoordinate);
                         degreeMap.put(tempCoordinate, MAX_GOAL_PRIORITY);
                     } else if (tempDegree == 2) {
-
                         // we want to fill corridor last to prevent clogs
                         if (cornerOrCorridor % 2 == 0) {
                             corridorCaseSet.add(tempCoordinate);
-                            degreeMap.put(tempCoordinate, 0);
+                            degreeMap.put(tempCoordinate, LOW_GOAL_PRIORITY);
                         }
 
                         // A corner is a corridor if linked to one but else it's a free cell
                         else {
                             cornerCaseSet.add(tempCoordinate);
-                            degreeMap.put(tempCoordinate, 1);
+                            degreeMap.put(tempCoordinate, NORMAL_GOAL_PRIORITY);
                         }
                     } else { // Normal free cell
-                        degreeMap.put(tempCoordinate, 1);
+                        degreeMap.put(tempCoordinate, NORMAL_GOAL_PRIORITY);
                     }
                 }
             }
@@ -168,42 +169,60 @@ public class SearchClient {
         for (Coordinate deadEnd : deadEndCaseSet) {
 
             boolean isCorridor = true;
+            boolean hasGoal = false;
+
             Coordinate prevCoor = deadEnd;
             Coordinate currentCoor = deadEnd;
             int goalPriorityValue = MAX_GOAL_PRIORITY;
             ArrayList<Coordinate> tempList = new ArrayList<>();
             tempList.add(deadEnd);
 
+            // find full deadend
             while (isCorridor) {
                 isCorridor = false;
                 goalPriorityValue--;
 
                 for (Coordinate tempCoor : currentCoor.get4VicinityCoordinates()) { //beware if tempCoor is the same for all the modification
-                    if (tempCoor != prevCoor && State.wallByCoordinate.get(tempCoor) == null) {
-                        prevCoor = currentCoor;
-                        currentCoor = tempCoor;
+
+                    if (State.wallByCoordinate.get(tempCoor) == null
+                            && !tempCoor.equals(prevCoor)) {
+
+                        if (State.goalByCoordinate.containsKey(tempCoor)) hasGoal = true;
 
                         if (corridorCaseSet.contains(tempCoor)) {
                             degreeMap.put(tempCoor, goalPriorityValue);
                             corridorCaseSet.remove(tempCoor);
                             tempList.add(tempCoor);
-
                             isCorridor = true;
-                            break;
 
                         } else if (cornerCaseSet.contains(tempCoor)) {
                             degreeMap.put(tempCoor, goalPriorityValue);
                             cornerCaseSet.remove(tempCoor);
                             tempList.add(tempCoor);
-
                             isCorridor = true;
-                            break;
-                        } // if not a corridor anymore, the end of a dead end is a normal cell with a low priority of 1
+
+                        } else {// if not a corridor anymore, the end of a dead end is a low priority cell that shouldn't be closed too quickly
+                            degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                        }
+
+                        prevCoor = new Coordinate(currentCoor);
+                        currentCoor = new Coordinate(tempCoor);
+                        break;
                     }
                 }
             }
 
-            deadEndlist.add(tempList);
+            // Action on full deadend
+
+            if (hasGoal) {
+                busyDeadEndList.add(tempList);
+            } else { // If don't have a goal in the deadend we consider it as normal cells
+                emptyDeadEndList.add(tempList);
+                for (Coordinate tempCoor : tempList) {
+                    degreeMap.put(tempCoor, NORMAL_GOAL_PRIORITY);
+                }
+            }
+
         }
 
         // link corridor to corner and add extremities
@@ -225,23 +244,27 @@ public class SearchClient {
                             corridorCaseSet.remove(tempCoor);
                             isCorridor = true;
                             break;
-
-                        } else if (cornerCaseSet.contains(tempCoor)) {
-                            degreeMap.put(tempCoor, 0);
+                        } else if (cornerCaseSet.contains(tempCoor)) { // a corner is a normal cell except if part of a corridor
+                            degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
                             cornerCaseSet.remove(tempCoor);
                             isCorridor = true;
                             break;
                         } else { // if not a corridor anymore, the end of a corridor is part of a corridor
-                            degreeMap.put(tempCoor, 0); // don't break so that one case corridor can modify its entrance and exit
+                            degreeMap.put(tempCoor, LOW_GOAL_PRIORITY); // don't break so that one case corridor can modify its entrance and exit
                         }
                     }
                 }
             }
         }
 
-        // TODO process "free cells" with deadend which don't have goals.
+        // Test things up
+        HashMap<Coordinate, String> testMap = new HashMap<>();
+        degreeMap.forEach((k, v) -> testMap.put(k, Integer.toString(v)));
+        State testState = new State(testMap);
+        System.err.println(testState);
 
         // TODO classify normal goals between them (for instance goals that are stuck between each other)
+
 
         //Match Boxes and Goals
         State.matchGoalsAndBoxes();

@@ -82,8 +82,7 @@ public class Coordinate {
             return false;
         if (this.getClass() != obj.getClass())
             return false;
-        Coordinate other = (Coordinate) obj;
-        return this.row == other.row && this.column == other.column;
+        return (row == ((Coordinate) obj).getRow() && column == ((Coordinate) obj).getColumn());
     }
 
 

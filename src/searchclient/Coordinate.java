@@ -18,6 +18,11 @@ public class Coordinate {
         this.column = cord.getColumn();
     }
 
+    public void set(int row, int column) {
+        this.column = column;
+        this.row = row;
+    }
+
     public int getColumn() {
         return column;
     }
@@ -38,12 +43,21 @@ public class Coordinate {
         return this.row + ", " + this.column;
     }
 
+    public int toInteger() {
+        return this.row * 100 + this.column;
+    }
+
+    public void setFromInteger(int number) {
+        this.row = number /100;
+        this.column = number % 100;
+    }
+
     public LinkedList<Coordinate> get4VicinityCoordinates() {
         LinkedList<Coordinate> neighbours = new LinkedList<>();
         neighbours.add(new Coordinate(this.row-1, this.column));
+        neighbours.add(new Coordinate(this.row, this.column+1));
         neighbours.add(new Coordinate(this.row+1, this.column));
         neighbours.add(new Coordinate(this.row, this.column-1));
-        neighbours.add(new Coordinate(this.row, this.column+1));
         return neighbours;
     }
 

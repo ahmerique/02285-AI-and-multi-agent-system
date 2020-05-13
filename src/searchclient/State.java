@@ -12,8 +12,8 @@ public class State {
 	public static HashMap<String, BoardObject> realBoardObjectsById; // Agent and Boxes
 	public static HashMap<Coordinate, Goal> goalByCoordinate; 
 	public static HashMap<Coordinate, BoardObject> realBoardObjectByCoordinate; // Agent and Boxes
+	public static HashMap<Coordinate, Boolean> wallByCoordinate;
 
-	public static boolean[][] walls;
 	public static int MAX_ROW;
 	public static int MAX_COL;
 
@@ -100,7 +100,7 @@ public class State {
 	public static boolean matchGoalsAndBoxes(){
 		/* TODO
 		Inefficient but temporary method.
-		Needs to be made better to match goals andboxes according to heuristics.
+		Needs to be made better to match goals and boxes according to heuristics.
 
 		for goal in setGoals:
 			for object in setBoxes:
@@ -211,7 +211,7 @@ public class State {
 	}
 
 	private boolean cellIsFree(Coordinate coordinate) {
-		return !State.walls[coordinate.getRow()][coordinate.getColumn()]
+		return State.wallByCoordinate.get(coordinate) == null
 				&& localIdByCoordinate.get(coordinate) == null;
 	}
 
@@ -258,7 +258,7 @@ public class State {
 			result = prime * result + currentAgentCoordinate.getRow();
 			result = (prime * result) + Arrays.deepHashCode(localIdByCoordinate.keySet().toArray());
 			result = prime * result + Arrays.deepHashCode(localCoordinateById.keySet().toArray());
-			result = prime * result + Arrays.deepHashCode(State.walls);
+			result = prime * result + Arrays.deepHashCode(State.wallByCoordinate.keySet().toArray());
 			this._hash = result;
 		}
 		return this._hash;
@@ -286,7 +286,7 @@ public class State {
 		if (!this.boxId.equals(other.boxId) || !this.agentId.equals(other.agentId))
 			return false;
 
-		return Arrays.deepEquals(State.walls, State.walls);
+		return true;
 	}
 
 	@Override
@@ -296,7 +296,7 @@ public class State {
 			for (int column = 0; column < MAX_COL; column++) {
 				Coordinate coord = new Coordinate(row, column);
 				String objectId = localIdByCoordinate.get(coord);
-				if (State.walls[row][column]) {
+				if (State.wallByCoordinate.get(coord) == null) {
 					s.append("+");
 				} else if (objectId != null) {
 					s.append(objectId.charAt(0));

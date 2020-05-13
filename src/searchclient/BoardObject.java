@@ -1,4 +1,4 @@
-package searchclient;
+package src.searchclient;
 
 
 /**

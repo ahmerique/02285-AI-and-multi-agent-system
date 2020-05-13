@@ -1,9 +1,9 @@
-package searchclient;
+package src.searchclient;
 
 import java.util.*;
 
-import static searchclient.Command.dirToColChange;
-import static searchclient.Command.dirToRowChange;
+import static src.searchclient.Command.dirToColChange;
+import static src.searchclient.Command.dirToRowChange;
 
 public class State {
 
@@ -61,7 +61,8 @@ public class State {
 		return this.parent == null;
 	}
 
-	public boolean isSubgGoalState() {
+	//TODO : Readapt this function to actual use case
+	public boolean isSubGoalState() {
 		Box boxObject = (Box) realBoardObjectsById.get(boxId);
 		return boxObject.getCurrentGoal().getCoordinate() == localCoordinateById.get(boxId);
 	}
@@ -71,21 +72,22 @@ public class State {
 	}
 
 	//Method to set a new object (agent:0, box:1, goal:2) in the State
-	public static boolean setNewStateObject(int row, int column, int type, char id, String color) {
+	public static boolean setNewStateObject(int row, int col, int type, char id, String color) {
 		
 		Coordinate coord = new Coordinate(row,col);
+		String finalId = new String();
 		
 		switch(type){
 			case 0://Agent
 				finalId = Character.toString(id);
 				Agent newAgent = new Agent(finalId, color);
-				State.realBoardObjectsById.put(newAgent, coord);
+				State.realBoardObjectsById.put(finalId, newAgent);
 				State.realBoardObjectByCoordinate.put(coord, newAgent);
 
 			case 1://Box
 				finalId = generateUniqueId(id);
 				Box newBox = new Box(finalId, color, id);
-				State.realBoardObjectsById.put(newBox, coord);
+				State.realBoardObjectsById.put(finalId, newBox);
 				State.realBoardObjectByCoordinate.put(coord, newBox);
 
 			case 2://Goal
@@ -95,6 +97,8 @@ public class State {
 				State.goalByCoordinate.put(coord, newGoal);
 
 		}
+
+		return(true);
 	}
 
 	public static boolean matchGoalsAndBoxes(){
@@ -108,25 +112,29 @@ public class State {
 					
 		*/
 
-		Set setGoals = State.goalWithCoordinate.keySet();
-		Set setBoxes = State.goalWithCoordinate.values();
+		Set<Goal> setGoals = State.goalWithCoordinate.keySet();
+		Collection<BoardObject> setBoxes = State.realBoardObjectsById.values();
 		String colorToMatch = new String();
 		
 		for(Goal goal : setGoals){
-		letterToMatch = goal.getLetter();
+		char letterToMatch = goal.getLetter();
+		
 			for(BoardObject object : setBoxes){
-				if((object.getClass().getSimpleName() == "Box") && (object.getLetter() == letterToMatch))  {
-					object.setCurrentGoal(goal);
-					setBoxes.remove(object);
-					break;
+				if(object instanceof Box)  {
+					// NOt a good way to call a child class method
+					if(((Box)object).getLetter() == letterToMatch){
+						((Box)object).setCurrentGoal(goal);
+						setBoxes.remove(object);
+						break;
+					}
 				}   
 			}
 		}
 
-
+		return(true);
 	}
 
-	private String generateUniqueId(char id){
+	private static String generateUniqueId(char id){
 		String stringId = Character.toString(id);
 		int iterator = 0;
 
@@ -137,9 +145,6 @@ public class State {
 
 		return(stringId + Integer.toString(iterator));
 	}
-
-
-}
 
 
 	public ArrayList<State> getExpandedStates() {

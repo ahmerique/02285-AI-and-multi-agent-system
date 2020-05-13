@@ -18,29 +18,26 @@ public class SearchClient {
     public State initialState;
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
-
-        // Variables
-        MutableGraph<Integer> graphMap = GraphBuilder.undirected().build();
-        boolean isMA; // 1 if MA, 0 if SA
-        HashMap<String, String> colors = new HashMap<>(); //All colors
-
-        // Reading tools
+        
+        boolean isMA; //SA if 1 at the end of the file reading, else MA
+        List<String> serverMessageList = new ArrayList<String>(); //All lines of the Initial level
         int max_col = 0; //Maximum column reached
+        int row = 0; //Iteration variable
         int countpart = 0; //Part of the initial file read
-        String line = serverMessages.readLine();
-        List<String> serverMessageList = new ArrayList<>(); //All lines of the Initial level
+        HashMap<String, String> colors = new HashMap<String, String>(); //All colors
 
+        String line = serverMessages.readLine();
 
         while (!line.equals("#end")) {
             System.err.println(line);/////////////////////////////////////////////////////////////
 
-            if (line.charAt(0) == '#') {
+            if (line.charAt(0) == '#'){
                 countpart += 1;
-            }
-
+            } 
+            
             line = serverMessages.readLine();
-
-            switch (countpart) {
+            
+            switch(countpart){
                 case 1://Domain
                     //No action needed. Name of the domain can be saved here.
                     break;
@@ -51,11 +48,11 @@ public class SearchClient {
                     break;
 
                 case 3://Colors
-                    while (line.charAt(0) != '#') {
+                    while(line.charAt(0) != '#'){
                         String[] str = line.split(": ");
                         String[] objects = str[1].split(", ");
                         //We add each color to the colors dictionnary
-                        for (String object : objects) {
+                        for (String object : objects){
                             colors.put(object, str[0]); //Considering that objects are only initialized once
                         }
                         line = serverMessages.readLine();
@@ -63,9 +60,8 @@ public class SearchClient {
                     break;
 
                 case 4://Initial state
-
                     //Features all the information regarding the level
-                    while (line.charAt(0) != '#') {
+                    while(line.charAt(0) != '#'){
                         serverMessageList.add(line);
                         max_col = Math.max(max_col, line.length());
                         line = serverMessages.readLine();
@@ -85,39 +81,37 @@ public class SearchClient {
 
                 case 5://Goal state
                     //Iteration over the rows of the initial state while reading the final state in parallel
-                    for (int i = 0; i < serverMessageList.size(); i++) {
+                    for(int i = 0; i < serverMessageList.size(); i++){
+                        String rowline = serverMessageList.get(i);
 
-                        String initLine = serverMessageList.get(i);
+                        for (int j = 0; j < rowline.length(); j++) {
 
-                        for (int j = 0; j < initLine.length(); j++) {
-
-                            // Fill static variable of state
-                            char chrInit = initLine.charAt(j);
-                            if (chrInit == '+') { // Wall
+                            char chr = rowline.charAt(j);
+                            if (chr == '+') { // Wall
                                 State.wallByCoordinate.put(new Coordinate(i, j), true);
-                            } else if ('0' <= chrInit && chrInit <= '9') { // Agent
-                                State.setNewStateObject(i, j, 0, chrInit, colors.get(chrInit));
-                            } else if ('A' <= chrInit && chrInit <= 'Z') { // Box
-                                State.setNewStateObject(i, j, 1, chrInit, colors.get(chrInit));
-                            } else if (chrInit == ' ') { // Free space
+                            } else if ('0' <= chr && chr <= '9') { // Agent
+                                State.setNewStateObject(i,j,0,chr,colors.get(Character.toString(chr)));
+                            } else if ('A' <= chr && chr <= 'Z') { // Box
+                                State.setNewStateObject(i,j,1,chr,colors.get(Character.toString(chr)));
+                            }  else if (chr == ' ') { // Free space
                                 // Nothing
                             } else {
-                                System.err.println("Error, read invalid level character: " + (int) chrInit);
+                                System.err.println("Error, read invalid level character: " + (int) chr);
                                 System.exit(1);
                             }
 
-                            //TODO remove if goals are added as Box objects parameters
                             char chrGoal = line.charAt(j);
+                            //TODO remove if goals are added as Box objects parameters
                             if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal
-                                State.setNewStateObject(i, j, 2, chrGoal, colors.get(chrGoal));
+                                State.setNewStateObject(i,j,2,chrGoal,colors.get(Character.toString(chrGoal)));
                             }
                         }
-
+                        
                         line = serverMessages.readLine();
                     }
                     break;
             }
-
+            
         }
 
 
@@ -274,7 +268,7 @@ public class SearchClient {
 
             State leafState = strategy.getAndRemoveLeaf();
 
-            if (leafState.isGoalState()) {
+            if (leafState.isSubGoalState()) {
                 return leafState.extractPlan();
             }
 
@@ -308,13 +302,16 @@ public class SearchClient {
                     strategy = new Strategy.StrategyDFS();
                     break;
                 case "-astar":
-                    strategy = new Strategy.StrategyBestFirst(new Heuristic.AStar(client.initialState));
+                    //strategy = new Strategy.StrategyBestFirst(new Heuristic.AStar(client.initialState));
+                    strategy = new Strategy.StrategyBFS();
                     break;
                 case "-wastar":
-                    strategy = new Strategy.StrategyBestFirst(new Heuristic.WeightedAStar(client.initialState, 5));
+                    //strategy = new Strategy.StrategyBestFirst(new Heuristic.WeightedAStar(client.initialState, 5));
+                    strategy = new Strategy.StrategyBFS();
                     break;
                 case "-greedy":
-                    strategy = new Strategy.StrategyBestFirst(new Heuristic.Greedy(client.initialState));
+                    //strategy = new Strategy.StrategyBestFirst(new Heuristic.Greedy(client.initialState));
+                    strategy = new Strategy.StrategyBFS();
                     break;
                 default:
                     strategy = new Strategy.StrategyBFS();

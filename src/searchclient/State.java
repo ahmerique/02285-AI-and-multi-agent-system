@@ -7,22 +7,36 @@ import static src.searchclient.Command.dirToRowChange;
 
 public class State {
 
-    // STATIC ATTRIBUTES
-    public static HashMap<Goal, Coordinate> goalWithCoordinate;
-    public static HashMap<String, BoardObject> realBoardObjectsById; // Agent and Boxes
-    public static HashMap<Coordinate, Goal> goalByCoordinate;
-    public static HashMap<Coordinate, BoardObject> realBoardObjectByCoordinate; // Agent and Boxes
-    public static HashMap<Coordinate, Boolean> wallByCoordinate;
+    /** STATIC ATTRIBUTES **/
 
+    // From direct reading
+    public static HashMap<String, BoardObject> realBoardObjectsById = new HashMap<>(); // Get Agent and boxes instances from their id
+
+    public static HashMap<Goal, Coordinate> goalWithCoordinate = new HashMap<>();
+    public static HashMap<Coordinate, Goal> goalByCoordinate = new HashMap<>();
+
+    public static HashMap<Coordinate, String> realIdByCoordinate = new HashMap<>(); // Agent and Boxes
+    public static HashMap<String, Coordinate> realCoordinateById = new HashMap<>(); // Agent and Boxes
+
+    public static HashMap<Coordinate, Boolean> wallByCoordinate = new HashMap<>();
     public static int MAX_ROW;
     public static int MAX_COL;
 
-    // LOCAL ATTRIBUTES
+    // From preprocessing
+    public static HashMap<Coordinate, Integer> degreeMap = new HashMap<>();
+    public static ArrayList<ArrayList<Coordinate>> busyDeadEndList = new ArrayList<>();
+    public static ArrayList<ArrayList<Coordinate>> emptyDeadEndList = new ArrayList<>();
+    public static ArrayList<ArrayList<Coordinate>> corridorList = new ArrayList<>();
+
+    /** LOCAL ATTRIBUTES **/
+
     private HashMap<String, Coordinate> localCoordinateById;
     private HashMap<Coordinate, String> localIdByCoordinate;
 
+    // TODO On peut peut être remplacer par de vraies objet car ils ne seront pas copiés, uniquement référencés.
     private String agentId;
     private String boxId;
+    //
 
     private State parent;
     public Command action;
@@ -33,28 +47,49 @@ public class State {
     private int _hash = 0;
 
 
+    /**  CONSTRUCTORS **/
     public State(State parent) {
         this.parent = parent;
-        if (parent == null) {
-            this.g = 0;
-        } else {
-            this.g = parent.g() + 1;
-        }
+        this.agentId = parent.agentId;
+        this.boxId = parent.boxId;
+        this.g = parent.g() + 1;
+
+        this.localCoordinateById = new HashMap<>();
+        this.localIdByCoordinate = new HashMap<>();
     }
 
-    //
     public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId, String boxId) throws AssertionError {
-        this.localCoordinateById = localCoordinateById;
-        this.localIdByCoordinate = localIdByCoordinate;
+
         this.agentId = agentId;
         this.boxId = boxId;
         this.g = 0;
 
+        // copy hashmap
+        this.localCoordinateById = new HashMap<>();
+        this.localIdByCoordinate = new HashMap<>();
+        for (Coordinate key : localIdByCoordinate.keySet()) {
+            this.localIdByCoordinate.put(key, localIdByCoordinate.get(key));
+        }
+        for (String key : localCoordinateById.keySet()) {
+            this.localCoordinateById.put(key, localCoordinateById.get(key));
+        }
+
         if (agentId == null) throw new AssertionError("MUST have an agentId");
     }
 
+    // FOR testing purpose only
     public State(HashMap<Coordinate, String> localIdByCoordinate) throws AssertionError {
         this.localIdByCoordinate = localIdByCoordinate;
+    }
+
+    public State getCopy(State oldState) {
+        return new State(oldState.localCoordinateById, oldState.localIdByCoordinate, oldState.agentId, oldState.boxId);
+    }
+
+
+    /**  GETTER AND SETTER **/
+    public HashMap<String, Coordinate> getLocalCoordinateById() {
+        return this.localCoordinateById;
     }
 
     public int g() {
@@ -68,15 +103,11 @@ public class State {
     //TODO : Readapt this function to actual use case
     public boolean isSubGoalState() {
         Box boxObject = (Box) realBoardObjectsById.get(boxId);
-        return boxObject.getCurrentGoal().getCoordinate() == localCoordinateById.get(boxId);
-    }
-
-    public HashMap<String, Coordinate> getLocalCoordinateById() {
-        return this.localCoordinateById;
+        return boxObject.getBoxGoal().getCoordinate() == localCoordinateById.get(boxId);
     }
 
     //Method to set a new object (agent:0, box:1, goal:2) in the State
-    public static void setNewStateObject(int row, int col, String type, char id, String color) {
+    public static BoardObject setNewStateObject(int row, int col, String type, char id, String color) {
 
         Coordinate coord = new Coordinate(row, col);
         String finalId;
@@ -86,64 +117,30 @@ public class State {
                 finalId = Character.toString(id);
                 Agent newAgent = new Agent(finalId, color);
                 State.realBoardObjectsById.put(finalId, newAgent);
-                State.realBoardObjectByCoordinate.put(coord, newAgent);
-                break;
+                State.realIdByCoordinate.put(coord, finalId);
+                State.realCoordinateById.put(finalId, coord);
+                return newAgent;
 
             case "BOX"://Box
                 finalId = generateUniqueId(id);
                 Box newBox = new Box(finalId, color, id);
 
                 State.realBoardObjectsById.put(finalId, newBox);
-                State.realBoardObjectByCoordinate.put(coord, newBox);
-                break;
+                State.realIdByCoordinate.put(coord, finalId);
+                State.realCoordinateById.put(finalId, coord);
+                return newBox;
 
             case "GOAL"://Goal
                 finalId = generateUniqueId(id);
                 Goal newGoal = new Goal(finalId, color, coord, id);
-
-                System.err.println(newGoal);
-
                 State.goalWithCoordinate.put(newGoal, coord);
                 State.goalByCoordinate.put(coord, newGoal);
-                break;
+                return newGoal;
 
             default:
                 System.err.println("INVALID setNewStateObject value");
-                break;
+                return null;
         }
-    }
-
-    public static boolean matchGoalsAndBoxes() {
-		/* TODO
-		Inefficient but temporary method.
-		Needs to be made better to match goals and boxes according to heuristics.
-
-		for goal in setGoals:
-			for object in setBoxes:
-				if object is Box and object.letter == goal.letter:
-					
-		*/
-
-        Set<Goal> setGoals = State.goalWithCoordinate.keySet();
-        Collection<BoardObject> setBoxes = State.realBoardObjectsById.values();
-        String colorToMatch;
-
-        for (Goal goal : setGoals) {
-            char letterToMatch = goal.getLetter();
-
-            for (BoardObject object : setBoxes) {
-                if (object instanceof Box) {
-                    // NOt a good way to call a child class method
-                    if (((Box) object).getLetter() == letterToMatch) {
-                        ((Box) object).setCurrentGoal(goal);
-                        setBoxes.remove(object);
-                        break;
-                    }
-                }
-            }
-        }
-
-        return (true);
     }
 
     private static String generateUniqueId(char id) {
@@ -158,6 +155,8 @@ public class State {
         return (stringId + Integer.toString(iterator));
     }
 
+
+    /**  METHODS **/
 
     public ArrayList<State> getExpandedStates() {
         ArrayList<State> expandedStates = new ArrayList<>(Command.EVERY.length);
@@ -259,6 +258,7 @@ public class State {
         Collections.reverse(plan);
         return plan;
     }
+
 
 
     /**

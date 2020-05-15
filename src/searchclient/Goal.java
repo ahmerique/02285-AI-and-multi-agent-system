@@ -6,6 +6,9 @@ public class Goal extends BoardObject {
     private final char letter;
     private final Coordinate coordinate;
     private int priority;
+
+    private Box attachedBox;
+
     /**
      * Instantiate a new Goal.
      *
@@ -14,12 +17,12 @@ public class Goal extends BoardObject {
      */
     public Goal(String id, String color, Coordinate coordinate, char letter) {
         super(id, color);
-        this.coordinate=coordinate;
-        this.letter= letter;
+        this.coordinate = coordinate;
+        this.letter = letter;
     }
 
     /**
-     * GETTERS
+     * GETTERS AND SETTERS
      */
 
     public Coordinate getCoordinate() {
@@ -30,7 +33,6 @@ public class Goal extends BoardObject {
         return letter;
     }
 
-
     public void setPriority(int priority) {
         this.priority = priority;
     }
@@ -38,6 +40,15 @@ public class Goal extends BoardObject {
     public int getPriority() {
         return priority;
     }
+
+    public Box getAttachedBox() {
+        return attachedBox;
+    }
+
+    public void setAttachedBox(Box attachedBox) {
+        this.attachedBox = attachedBox;
+    }
+
 
     @Override
     public String toString() {

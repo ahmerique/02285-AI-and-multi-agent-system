@@ -6,7 +6,7 @@ public class Box extends BoardObject {
     /**
      * Additional attributes
      */
-    private Goal currentGoal;
+    private Goal boxGoal;
     private boolean isOnGoal;
     private final char letter;
 
@@ -26,12 +26,12 @@ public class Box extends BoardObject {
      * GETTER AND SETTER
      */
 
-    public Goal getCurrentGoal() {
-        return currentGoal;
+    public Goal getBoxGoal() {
+        return boxGoal;
     }
 
-    public void setCurrentGoal(Goal currentGoal) {
-        this.currentGoal = currentGoal;
+    public void setBoxGoal(Goal boxGoal) {
+        this.boxGoal = boxGoal;
     }
 
     public boolean isOnGoal() {
@@ -45,5 +45,4 @@ public class Box extends BoardObject {
     public char getLetter() {
         return letter;
     }
-
 }

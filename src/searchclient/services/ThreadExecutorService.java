@@ -1,4 +1,4 @@
-package searchclient.services;
+package src.searchclient.services;
 
 
 import searchclient.AgentThread;

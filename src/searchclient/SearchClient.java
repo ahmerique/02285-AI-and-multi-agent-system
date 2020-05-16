@@ -1,6 +1,7 @@
 package src.searchclient;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Array;
 import java.util.*;
@@ -12,6 +13,9 @@ public class SearchClient {
     public State initialState;
     public PriorityQueue<Goal> goalQueue;
     public ArrayList<Agent> agentList;
+    public HashMap<Agent, ArrayList<State>> planByAgent = new HashMap<>();
+    public HashMap<Agent, State> latestStateMap = new HashMap<>();
+    public String[] latestServerOutput;
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
 
@@ -34,9 +38,10 @@ public class SearchClient {
         // TODO REPLACE BY CHOSEN STRATEGY
         Strategy strategy = new Strategy.StrategyBFS();
 
+        /*
         ArrayList<State> solution;
         try {
-            solution = Search(strategy, agentList.get(0)); // TODO REPLACE BY REAL
+            solution = Search(strategy, agentList.get(0), problemType.COMPLETE); // TODO REPLACE BY REAL
         } catch (OutOfMemoryError ex) {
             System.err.println("Maximum memory usage exceeded.");
             solution = null;
@@ -62,20 +67,19 @@ public class SearchClient {
                 }
             }
         }
+        */
 
-
-/*  Example of working algorithm
+        //  Example of working algorithm
         boolean finished = false;
         while (!finished) {
             for (Agent agent : agentList) {
                 agent.updateGoal(initialState, goalQueue);
-                if (agent.currentGoal != null) {
+                if (agent.getCurrentGoal() != null) {
                     System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal().getId()));
-                    State myinitalState = initialState.getCopy();
-                    myinitalState.thisAgent = agent;
-                    ArrayList<State> plan = Search(strategy, myinitalState);
+                    ArrayList<State> plan = Search(strategy, agent, problemType.COMPLETE);
                     if (plan != null) {
-                        agent.appendSolution(plan);
+                        // TODO maybe if change plan to help someone, should do something with it
+                        ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
                     } else {
                         System.err.println("Solution could not be found");
                     }
@@ -84,14 +88,18 @@ public class SearchClient {
             //Execute solutions as long as possible
             boolean cont = true;
             while (cont) {
-                cont = update();
-                boolean status = currentState.changeState(latestActionArray, latestServerOutput, this);
-                //currentState.printState();
+                cont = sendNextStepToServer(serverMessages);
+                boolean status = State.updateStaticMap(latestStateMap, latestServerOutput);
+                /*
+                currentState.printState();
                 if (!status) {
                     currentState.printState();
                     System.exit(0);
                 }
+                */
             }
+
+            /** TODO Error handling
             boolean error = false;
             for (int i = 0; i < latestServerOutput.length; i++) {
                 if (latestServerOutput[i] != null && latestServerOutput[i].equals("false")) {
@@ -121,20 +129,20 @@ public class SearchClient {
                     }
                 }
             }
+             */
+
             boolean agentsDone = true;
-            for (Agent a : currentState.agents) {
-                if (a.getCurrentSubGoal() != null) {
+            for (Agent a : agentList) {
+                if (a.getCurrentGoal() != null) {
                     agentsDone = false;
+                    break;
                 }
             }
-            if (agentsDone && subGoals.isEmpty()) {
+
+            if (agentsDone && goalQueue.isEmpty()) {
                 finished = true;
             }
         }
-
-
-*/
-
 
     }
 
@@ -205,7 +213,9 @@ public class SearchClient {
                             if (chr == '+') { // Wall
                                 State.wallByCoordinate.put(new Coordinate(i, j), true);
                             } else if ('0' <= chr && chr <= '9') { // Agent
-                                agentList.add((Agent) State.setNewStateObject(i, j, "AGENT", chr, colors.get(Character.toString(chr))));
+                                Agent newAgent = (Agent) State.setNewStateObject(i, j, "AGENT", chr, colors.get(Character.toString(chr)));
+                                agentList.add(newAgent);
+                                planByAgent.put(newAgent, new ArrayList<>());
                             } else if ('A' <= chr && chr <= 'Z') { // Box
                                 State.setNewStateObject(i, j, "BOX", chr, colors.get(Character.toString(chr)));
                             } else if (chr == ' ') { // Free space
@@ -227,6 +237,7 @@ public class SearchClient {
 
         }
 
+        agentList.sort(Comparator.comparingInt(a -> Integer.parseInt(a.getId())));
         System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
         System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
         System.err.println("Done initializing");
@@ -512,11 +523,10 @@ public class SearchClient {
         }
     };
 
-    public ArrayList<State> Search(Strategy strategy, Agent agent) {
+    public ArrayList<State> Search(Strategy strategy, Agent agent, problemType typeOfProblem) {
         System.err.format("Search starting with strategy %s.\n", strategy.toString());
 
         // TODO DEFINE WHAT IS INITIAL STATE, it's here we can choose to use easier problem or full problem, for now it takes the board as it is.
-
 
         // TODO Decide if the box should store a goal or the goal store a box.
         State firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId(), agent.getCurrentGoal().getAttachedBox().getId());
@@ -550,6 +560,68 @@ public class SearchClient {
         }
     }
 
+    public boolean sendNextStepToServer(BufferedReader serverMessages) throws IOException {
+
+        int noAct = 0; // if no more action to do, get new goals
+        StringBuilder jointAction = new StringBuilder("[");
+
+        // Concatenate action for each agent (agentList is ordered by name)
+        for (Agent agent : agentList) {
+
+            State next = null;
+            String actionString;
+
+            // get next State and remove it from plan
+            if (planByAgent.get(agent).size() > 0) {
+                next = planByAgent.get(agent).get(0);
+                this.latestStateMap.put(agent, next);
+                planByAgent.get(agent).remove(0);
+
+                if (next.action == null) { // Deliberate NoOp
+                    actionString = "NoOp";
+                } else {
+                    actionString = next.action.toString();
+                }
+            } else {
+                noAct++;
+                actionString = "NoOp";
+            }
+
+            jointAction.append(actionString);
+            if (!agent.equals(agentList.get(agentList.size() - 1))) {
+                jointAction.append(",");
+            }
+        }
+        jointAction.append("]");
+
+        if (noAct == agentList.size()) return false;
+
+        System.err.println("Sending command: " + jointAction + "\n");
+
+        // Place message in buffer
+        System.out.println(jointAction);
+
+        // Flush buffer
+        System.out.flush();
+
+        // Disregard these for now, but read or the server stalls when its output buffer gets filled!
+        String serverAnswer = serverMessages.readLine();
+        System.err.println(serverAnswer);
+
+        if (serverAnswer == null) return false;
+
+        String strip = serverAnswer.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("    \\s", "");
+        String[] returnVals = strip.split(",");
+        this.latestServerOutput = returnVals;
+        for (String returnVal : returnVals) {
+            if (returnVal.equals("false")) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static void main(String[] args) throws Exception {
         BufferedReader serverMessages = new BufferedReader(new InputStreamReader(System.in));
 
@@ -560,4 +632,9 @@ public class SearchClient {
         // Read level and create the initial state of the problem
         SearchClient client = new SearchClient(serverMessages);
     }
+}
+
+enum problemType {
+    COMPLETE,
+    RELAXED
 }

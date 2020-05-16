@@ -82,8 +82,8 @@ public class State {
         this.localIdByCoordinate = localIdByCoordinate;
     }
 
-    public State getCopy(State oldState) {
-        return new State(oldState.localCoordinateById, oldState.localIdByCoordinate, oldState.agentId, oldState.boxId);
+    public State getCopy() {
+        return new State(this.localCoordinateById, this.localIdByCoordinate, this.agentId, this.boxId);
     }
 
 
@@ -155,6 +155,10 @@ public class State {
         return (stringId + Integer.toString(iterator));
     }
 
+    // TODO update map from agent action
+    public static boolean updateStaticMap(HashMap<Agent, State> latestStateMap, String[] latestServerOutput) {
+        return true;
+    }
 
     /**  METHODS **/
 

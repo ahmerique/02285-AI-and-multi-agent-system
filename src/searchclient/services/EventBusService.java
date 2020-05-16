@@ -1,10 +1,10 @@
-package searchclient.services;
-
+package src.searchclient.services;
+/*
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
-
+*/
 public class EventBusService {
-
+/*
     private static final EventBus eventBus = new AsyncEventBus(ThreadExecutorService.getAgentExecutor());
 
     public static EventBus getEventBus() {
@@ -22,4 +22,6 @@ public class EventBusService {
     public static void post(Object event) {
         eventBus.post(event);
     }
+ */
+
 }

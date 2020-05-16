@@ -1,4 +1,4 @@
-package searchclient.events;
+package src.searchclient.events;
 
 public class EventTemplate {
 }

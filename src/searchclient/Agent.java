@@ -1,8 +1,11 @@
 package src.searchclient;
 
+import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 public class Agent extends BoardObject {
+
+    private int counter = 0;
 
     private Goal currentGoal;
 
@@ -14,6 +17,7 @@ public class Agent extends BoardObject {
      */
     public Agent(String id, String color) {
         super(id, color);
+        counter++;
     }
 
     public Goal getCurrentGoal() {
@@ -24,7 +28,18 @@ public class Agent extends BoardObject {
         this.currentGoal = currentGoal;
     }
 
-    // TODO
-    public void updateGoal(State initialState, PriorityQueue<Goal> goalQueue) {
+    public void updateGoal(ArrayList<Goal> goalQueue) {
+        if (currentGoal == null) {
+            for (Goal tempGoal : goalQueue) {
+                System.err.println(tempGoal.getColor());
+                if (tempGoal.getColor().equals(this.getColor())) {
+                    currentGoal = tempGoal;
+                    break;
+                }
+            }
+            goalQueue.remove(currentGoal);
+        } else {
+            // TODO when there is a conflict for instance
+        }
     }
 }

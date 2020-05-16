@@ -11,29 +11,29 @@ import static java.lang.Character.toLowerCase;
 // TODO UPDATE WITH STATE CHANGES
 public class SearchClient {
     public State initialState;
-    public PriorityQueue<Goal> goalQueue;
-    public ArrayList<Agent> agentList;
+    public ArrayList<Goal> goalQueue;
+    public ArrayList<Agent> agentList = new ArrayList<>();
     public HashMap<Agent, ArrayList<State>> planByAgent = new HashMap<>();
-    public HashMap<Agent, State> latestStateMap = new HashMap<>();
+    public State[] latestStateArray;
     public String[] latestServerOutput;
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
 
         System.err.println("Begin reading from server");
         readMapFromServer(serverMessages);
+        latestStateArray = new State[agentList.size()];
+        latestServerOutput = new String[agentList.size()];
 
         // Preprocess data
         System.err.println("Begin preprocessing of the map");
         goalQueue = preprocessMap();
 
-        ////////// TO GET ORDERED GOAL USE .poll() function and not iteration
-
-        while (!goalQueue.isEmpty()) {
-            System.out.println(goalQueue.poll());
-        }
-
         //Match Boxes and Goals
         matchGoalsAndBoxes();
+
+
+        //----------- BEGIN MAIN LOOP -------------
+
 
         // TODO REPLACE BY CHOSEN STRATEGY
         Strategy strategy = new Strategy.StrategyBFS();
@@ -73,7 +73,7 @@ public class SearchClient {
         boolean finished = false;
         while (!finished) {
             for (Agent agent : agentList) {
-                agent.updateGoal(initialState, goalQueue);
+                agent.updateGoal(goalQueue);
                 if (agent.getCurrentGoal() != null) {
                     System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal().getId()));
                     ArrayList<State> plan = Search(strategy, agent, problemType.COMPLETE);
@@ -85,11 +85,16 @@ public class SearchClient {
                     }
                 }
             }
-            //Execute solutions as long as possible
+
+            // TODO check if all goals priority are inferior to the first element of goalQueue (For instance if
+            //  only one agent can fill the first case of a deadEnd)
+            // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
+
+            // Execute as long as possible
             boolean cont = true;
             while (cont) {
                 cont = sendNextStepToServer(serverMessages);
-                boolean status = State.updateStaticMap(latestStateMap, latestServerOutput);
+                boolean status = State.updateStaticMap(latestStateArray, latestServerOutput);
                 /*
                 currentState.printState();
                 if (!status) {
@@ -180,7 +185,7 @@ public class SearchClient {
                 case 3://Colors
                     while (line.charAt(0) != '#') {
                         String[] str = line.split(": ");
-                        String[] objects = str[1].split(", ");
+                        String[] objects = str[1].replaceAll("\\s+","").split(",");
                         //We add each color to the colors dictionnary
                         for (String object : objects) {
                             colors.put(object, str[0]); //Considering that objects are only initialized once
@@ -243,7 +248,7 @@ public class SearchClient {
         System.err.println("Done initializing");
     }
 
-    private PriorityQueue<Goal> preprocessMap() {
+    private ArrayList<Goal> preprocessMap() {
         int MAX_GOAL_PRIORITY = 1000; // for test 9;
         int NORMAL_GOAL_PRIORITY = 100; // for test 1
         int LOW_GOAL_PRIORITY = 0;
@@ -474,11 +479,12 @@ public class SearchClient {
         System.err.println(corridorList);
         */
 
-        PriorityQueue<Goal> goalPriorityQueue = new PriorityQueue<>(State.goalWithCoordinate.keySet().size(), goalComparator);
-        for (Goal tempGoal : State.goalWithCoordinate.keySet()) {
+        ArrayList<Goal> goalPriorityQueue = new ArrayList<>(State.goalWithCoordinate.keySet());
+        for (Goal tempGoal : goalPriorityQueue) {
             tempGoal.setPriority(State.degreeMap.get(tempGoal.getCoordinate()));
-            goalPriorityQueue.add(tempGoal);
         }
+        goalPriorityQueue.sort(goalComparator);
+
 
         System.err.println("Finished preprocessing of the map");
 
@@ -497,7 +503,7 @@ public class SearchClient {
 		*/
 
         Set<Goal> setGoals = State.goalWithCoordinate.keySet();
-        Collection<BoardObject> setBoxes = State.realBoardObjectsById.values();
+        ArrayList<BoardObject> setBoxes = new ArrayList<>(State.realBoardObjectsById.values());
         String colorToMatch;
 
         for (Goal goal : setGoals) {
@@ -508,6 +514,7 @@ public class SearchClient {
                     // NOt a good way to call a child class method
                     if (((Box) object).getLetter() == letterToMatch) {
                         ((Box) object).setBoxGoal(goal);
+                        goal.setAttachedBox((Box) object);
                         setBoxes.remove(object);
                         break;
                     }
@@ -541,6 +548,7 @@ public class SearchClient {
             }
 
             if (strategy.frontierIsEmpty()) {
+                System.err.println("frontier is empty");
                 return null;
             }
 
@@ -563,18 +571,19 @@ public class SearchClient {
     public boolean sendNextStepToServer(BufferedReader serverMessages) throws IOException {
 
         int noAct = 0; // if no more action to do, get new goals
-        StringBuilder jointAction = new StringBuilder("[");
+        StringBuilder jointAction = new StringBuilder();
 
         // Concatenate action for each agent (agentList is ordered by name)
+        int agentNumber = 0;
         for (Agent agent : agentList) {
 
-            State next = null;
+            State next;
             String actionString;
 
             // get next State and remove it from plan
             if (planByAgent.get(agent).size() > 0) {
                 next = planByAgent.get(agent).get(0);
-                this.latestStateMap.put(agent, next);
+                this.latestStateArray[agentNumber] = next;
                 planByAgent.get(agent).remove(0);
 
                 if (next.action == null) { // Deliberate NoOp
@@ -582,17 +591,20 @@ public class SearchClient {
                 } else {
                     actionString = next.action.toString();
                 }
-            } else {
+            } else { // If plan has been fully executed
                 noAct++;
                 actionString = "NoOp";
+                agent.setCurrentGoal(null); // TODO What happens if execution fails in your last action? must update current goal to null somewhere
             }
 
             jointAction.append(actionString);
             if (!agent.equals(agentList.get(agentList.size() - 1))) {
-                jointAction.append(",");
+                jointAction.append(";");
             }
+
+            agentNumber++;
         }
-        jointAction.append("]");
+        System.err.println(jointAction);
 
         if (noAct == agentList.size()) return false;
 
@@ -610,8 +622,8 @@ public class SearchClient {
 
         if (serverAnswer == null) return false;
 
-        String strip = serverAnswer.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("    \\s", "");
-        String[] returnVals = strip.split(",");
+        String strip = serverAnswer.replaceAll("\\s", "");
+        String[] returnVals = strip.split(";");
         this.latestServerOutput = returnVals;
         for (String returnVal : returnVals) {
             if (returnVal.equals("false")) {

@@ -165,8 +165,8 @@ public abstract class Heuristic implements Comparator<State> {
         HashMap<BoardObject, Coordinate> coordinateByAgent = this.getAllCoordinate(n, "Agent");
         
         // Get the minimum distance from each agent to the nearest box, and add the minimum distance to the Sum
-        for (HashMap.Entry<BoardObject, Coordinate> agent : coordinateByAgent.entrySet()) {
-			double agentDistanceMinimum = getMinimumDistanceFromAgentToBoxes(agent.getKey(), agent.getValue(), coordinateByBox, method);
+        for (HashMap.Entry<Box, Coordinate> agent : coordinateByAgent.entrySet()) {
+			double agentDistanceMinimum = getMinimumDistanceFromAgentsToBoxes(agent.getKey(), agent.getValue(), coordinateByBox, method);
 			sum += agentDistanceMinimum;
         }
 
@@ -245,7 +245,7 @@ public abstract class Heuristic implements Comparator<State> {
 		double minimumDistance = 9999999; // Initialize the minimum distance at a very high value
 		
 		//For each box whose color match with the agent color, calculate the distance according to given heuristic choice
-		for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
+		for (HashMap.Entry<Box, Coordinate> box : coordinateByBox.entrySet()) {
 			double distance = 99999999;
 			if (method.equals("manhattan")){
                 // Check if colors match

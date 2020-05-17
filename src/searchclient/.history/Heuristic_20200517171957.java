@@ -166,7 +166,7 @@ public abstract class Heuristic implements Comparator<State> {
         
         // Get the minimum distance from each agent to the nearest box, and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> agent : coordinateByAgent.entrySet()) {
-			double agentDistanceMinimum = getMinimumDistanceFromAgentToBoxes(agent.getKey(), agent.getValue(), coordinateByBox, method);
+			double agentDistanceMinimum = getMinimumDistanceFromAgentsToBoxes(agent.getKey(), agent.getValue(), coordinateByBox, method);
 			sum += agentDistanceMinimum;
         }
 

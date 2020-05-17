@@ -39,8 +39,8 @@ public class State {
     private HashMap<Coordinate, String> localIdByCoordinate;
 
     // TODO On peut peut être remplacer par de vraies objet car ils ne seront pas copiés, uniquement référencés.
-    private String agentId;
-    private String boxId;
+    public String agentId;
+    public String boxId;
     //
 
     private State parent;
@@ -65,6 +65,7 @@ public class State {
         this.localIdByCoordinate = new HashMap<>();
     }
 
+    // firstStateCreator
     public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId, String boxId) throws AssertionError {
 
         this.agentId = agentId;
@@ -170,38 +171,41 @@ public class State {
 
         for (int i = 0; i < latestStateArray.length; i++) {
             if (latestServerOutput[i].equals("true")) {
-                Command c = latestStateArray[i].action;
-                String agentId = latestStateArray[i].agentId;
-                Coordinate currentAgentCoordinate = realCoordinateById.get(agentId);
-                Coordinate nextAgentCoordinate = new Coordinate(
-                        currentAgentCoordinate.getRow() + dirToRowChange(c.dir1),
-                        currentAgentCoordinate.getColumn() + dirToColChange(c.dir1));
+                if (latestStateArray[i] != null) {
+                    Command c = latestStateArray[i].action;
+                    String agentId = latestStateArray[i].agentId;
+                    Coordinate currentAgentCoordinate = realCoordinateById.get(agentId);
+                    Coordinate nextAgentCoordinate = new Coordinate(
+                            currentAgentCoordinate.getRow() + dirToRowChange(c.dir1),
+                            currentAgentCoordinate.getColumn() + dirToColChange(c.dir1));
 
-                if (c.actionType == Command.Type.Move) {
-                    moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
-                } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
-                    String boxToMoveId = realBoxAt(nextAgentCoordinate);
-                    if (boxToMoveId != null) {
-                        Coordinate nextBoxCoordinate = new Coordinate(
-                                nextAgentCoordinate.getRow() + dirToRowChange(c.dir2),
-                                nextAgentCoordinate.getColumn() + dirToColChange(c.dir2));
-                        moveRealObject(boxToMoveId, nextAgentCoordinate, nextBoxCoordinate);
+                    if (c.actionType == Command.Type.Move) {
                         moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
-                    }
-                } else if (c.actionType == Command.Type.Pull) { // Box takes the place of the agent and agent move toward dir1
-                    Coordinate expectedBoxCoordinate = new Coordinate(
-                            currentAgentCoordinate.getRow() + dirToRowChange(c.dir2),
-                            currentAgentCoordinate.getColumn() + dirToColChange(c.dir2));
-                    String boxToMoveId = realBoxAt(expectedBoxCoordinate);
-                    if (boxToMoveId != null) {
-                        moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
-                        moveRealObject(boxToMoveId, expectedBoxCoordinate, currentAgentCoordinate);
+                    } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
+                        String boxToMoveId = realBoxAt(nextAgentCoordinate);
+                        if (boxToMoveId != null) {
+                            Coordinate nextBoxCoordinate = new Coordinate(
+                                    nextAgentCoordinate.getRow() + dirToRowChange(c.dir2),
+                                    nextAgentCoordinate.getColumn() + dirToColChange(c.dir2));
+                            moveRealObject(boxToMoveId, nextAgentCoordinate, nextBoxCoordinate);
+                            moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
+                        }
+                    } else if (c.actionType == Command.Type.Pull) { // Box takes the place of the agent and agent move toward dir1
+                        Coordinate expectedBoxCoordinate = new Coordinate(
+                                currentAgentCoordinate.getRow() + dirToRowChange(c.dir2),
+                                currentAgentCoordinate.getColumn() + dirToColChange(c.dir2));
+                        String boxToMoveId = realBoxAt(expectedBoxCoordinate);
+                        if (boxToMoveId != null) {
+                            moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
+                            moveRealObject(boxToMoveId, expectedBoxCoordinate, currentAgentCoordinate);
+                        }
                     }
                 }
             } else {
                 // TODO Conflict handling or not possible move handling
                 hasError = true;
             }
+
         }
         return hasError;
     }
@@ -261,6 +265,7 @@ public class State {
                 }
             }
         }
+
         return expandedStates;
     }
 
@@ -375,11 +380,19 @@ public class State {
 
     @Override
     public String toString() {
+        return getStringMap(localIdByCoordinate);
+    }
+
+    public static String getRealMapString() {
+        return getStringMap(realIdByCoordinate);
+    }
+
+    private static String getStringMap(HashMap<Coordinate, String> idByCoordinateMap) {
         StringBuilder s = new StringBuilder();
         for (int row = 0; row < MAX_ROW; row++) {
             for (int column = 0; column < MAX_COL; column++) {
                 Coordinate coord = new Coordinate(row, column);
-                String objectId = localIdByCoordinate.get(coord);
+                String objectId = idByCoordinateMap.get(coord);
                 if (State.wallByCoordinate.get(coord) != null) {
                     s.append("+");
                 } else if (objectId != null) {
@@ -392,5 +405,6 @@ public class State {
         }
         return s.toString();
     }
+
 
 }

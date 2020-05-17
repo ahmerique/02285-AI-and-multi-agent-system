@@ -10,7 +10,6 @@ public class BoardObject {
     private final String id;
     private final String color;
 
-
     /**
      * Instantiate a new BoardObject.
      *
@@ -59,6 +58,11 @@ public class BoardObject {
         if (this.getClass() != obj.getClass())
             return false;
         return (id.equals(((BoardObject) obj).getId()));
+    }
+
+    @Override
+    public String toString() {
+        return "(" + id + ", " + color + ")";
     }
 
 }

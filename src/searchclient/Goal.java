@@ -56,6 +56,7 @@ public class Goal extends BoardObject {
                 "letter=" + letter +
                 ", coordinate=" + coordinate +
                 ", priority=" + priority +
+                ", box=" + attachedBox +
                 '}';
     }
 }

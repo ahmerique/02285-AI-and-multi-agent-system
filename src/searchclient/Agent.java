@@ -31,7 +31,6 @@ public class Agent extends BoardObject {
     public void updateGoal(ArrayList<Goal> goalQueue) {
         if (currentGoal == null) {
             for (Goal tempGoal : goalQueue) {
-                System.err.println(tempGoal.getColor());
                 if (tempGoal.getColor().equals(this.getColor())) {
                     currentGoal = tempGoal;
                     break;

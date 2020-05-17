@@ -35,8 +35,6 @@ public class SearchClient {
         //----------- BEGIN MAIN LOOP -------------
 
 
-        // TODO REPLACE BY CHOSEN STRATEGY
-        Strategy strategy = new Strategy.StrategyBFS();
 
         /*
         ArrayList<State> solution;
@@ -74,9 +72,13 @@ public class SearchClient {
         while (!finished) {
             for (Agent agent : agentList) {
                 agent.updateGoal(goalQueue);
+
                 if (agent.getCurrentGoal() != null) {
                     System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal().getId()));
-                    ArrayList<State> plan = Search(strategy, agent, problemType.COMPLETE);
+
+                    // TODO REPLACE BY CHOSEN STRATEGY
+                    ArrayList<State> plan = Search(new Strategy.StrategyBFS(), agent, problemType.COMPLETE);
+
                     if (plan != null) {
                         // TODO maybe if change plan to help someone, should do something with it
                         ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
@@ -105,35 +107,35 @@ public class SearchClient {
             }
 
             /** TODO Error handling
-            boolean error = false;
-            for (int i = 0; i < latestServerOutput.length; i++) {
-                if (latestServerOutput[i] != null && latestServerOutput[i].equals("false")) {
-                    error = true;
-                    agentErrorState[i] = true;
-                    Agent failAgent = currentState.getAgentById(Integer.toString(i).charAt(0));
-                    if (!currentState.agents.get(i).isQuarantined()) {
-                        System.err.println("Agent number " + failAgent.getId() + " is requesting clear");
-                        failAgent.requestClear(currentState);
-                    }
-                } else {
-                    agentErrorState[i] = false;
-                    System.err.println("Agent number " + currentState.agents.get(i).getId() + " is done with no error");
-                    for (Agent a : currentState.getAgents()) {
-                        if (a.isQuarantined() && a.getQuarantinedBy().getId() == currentState.agents.get(i).getId()) {
-                            a.setQuarantined(false);
-                        }
-                    }
-                }
-            }
-            if (error) {
-                while (update()) {
-                    boolean status = currentState.changeState(latestActionArray, latestServerOutput, this);
-                    if (!status) {
-                        currentState.printState();
-                        System.exit(0);
-                    }
-                }
-            }
+             boolean error = false;
+             for (int i = 0; i < latestServerOutput.length; i++) {
+             if (latestServerOutput[i] != null && latestServerOutput[i].equals("false")) {
+             error = true;
+             agentErrorState[i] = true;
+             Agent failAgent = currentState.getAgentById(Integer.toString(i).charAt(0));
+             if (!currentState.agents.get(i).isQuarantined()) {
+             System.err.println("Agent number " + failAgent.getId() + " is requesting clear");
+             failAgent.requestClear(currentState);
+             }
+             } else {
+             agentErrorState[i] = false;
+             System.err.println("Agent number " + currentState.agents.get(i).getId() + " is done with no error");
+             for (Agent a : currentState.getAgents()) {
+             if (a.isQuarantined() && a.getQuarantinedBy().getId() == currentState.agents.get(i).getId()) {
+             a.setQuarantined(false);
+             }
+             }
+             }
+             }
+             if (error) {
+             while (update()) {
+             boolean status = currentState.changeState(latestActionArray, latestServerOutput, this);
+             if (!status) {
+             currentState.printState();
+             System.exit(0);
+             }
+             }
+             }
              */
 
             boolean agentsDone = true;
@@ -184,8 +186,8 @@ public class SearchClient {
 
                 case 3://Colors
                     while (line.charAt(0) != '#') {
-                        String[] str = line.split(": ");
-                        String[] objects = str[1].replaceAll("\\s+","").split(",");
+                        String[] str = line.replaceAll("\\s+", "").split(":");
+                        String[] objects = str[1].split(",");
                         //We add each color to the colors dictionnary
                         for (String object : objects) {
                             colors.put(object, str[0]); //Considering that objects are only initialized once
@@ -523,7 +525,7 @@ public class SearchClient {
         }
     }
 
-    public static Comparator<Goal> goalComparator = new Comparator<Goal>() {
+    public static Comparator<Goal> goalComparator = new Comparator<>() {
         @Override
         public int compare(Goal o1, Goal o2) {
             return o2.getPriority() - o1.getPriority();
@@ -537,6 +539,8 @@ public class SearchClient {
 
         // TODO Decide if the box should store a goal or the goal store a box.
         State firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId(), agent.getCurrentGoal().getAttachedBox().getId());
+
+        System.err.println(firstState);
 
         strategy.addToFrontier(firstState);
 
@@ -553,6 +557,8 @@ public class SearchClient {
             }
 
             State leafState = strategy.getAndRemoveLeaf();
+
+
 
             if (leafState.isSubGoalState()) {
                 return leafState.extractPlan();
@@ -592,8 +598,10 @@ public class SearchClient {
                     actionString = next.action.toString();
                 }
             } else { // If plan has been fully executed
+                //System.err.println("Agent " + agent.getId() + " reached its goal " + agent.getCurrentGoal());
                 noAct++;
                 actionString = "NoOp";
+                this.latestStateArray[agentNumber] = null;
                 agent.setCurrentGoal(null); // TODO What happens if execution fails in your last action? must update current goal to null somewhere
             }
 
@@ -604,11 +612,10 @@ public class SearchClient {
 
             agentNumber++;
         }
-        System.err.println(jointAction);
 
         if (noAct == agentList.size()) return false;
 
-        System.err.println("Sending command: " + jointAction + "\n");
+        //System.err.println("Sending command: " + jointAction + "\n");
 
         // Place message in buffer
         System.out.println(jointAction);
@@ -618,7 +625,7 @@ public class SearchClient {
 
         // Disregard these for now, but read or the server stalls when its output buffer gets filled!
         String serverAnswer = serverMessages.readLine();
-        System.err.println(serverAnswer);
+        //System.err.println(serverAnswer);
 
         if (serverAnswer == null) return false;
 

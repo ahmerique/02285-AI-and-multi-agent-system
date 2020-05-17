@@ -34,9 +34,6 @@ public class SearchClient {
 
         //----------- BEGIN MAIN LOOP -------------
 
-        // TODO REPLACE BY CHOSEN STRATEGY
-        // A*
-        Strategy strategy = new Strategy.StrategyBestFirst(new Heuristic.AStar());
 
 
         /*

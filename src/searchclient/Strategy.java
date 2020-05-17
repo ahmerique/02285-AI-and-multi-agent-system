@@ -1,12 +1,12 @@
 package src.searchclient;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.PriorityQueue;
 
-
-// TODO UPDATE WITH STATE CHANGES
 public abstract class Strategy {
-    private HashSet<State> explored;
     private final long startTime;
+    private HashSet<State> explored;
 
     public Strategy() {
         this.explored = new HashSet<>();
@@ -26,7 +26,7 @@ public abstract class Strategy {
     }
 
     public String searchStatus() {
-        return String.format("#Explored: %,6d, #Frontier: %,6d, #Generated: %,6d, Time: %3.2f s \t%s", this.countExplored(), this.countFrontier(), this.countExplored()+this.countFrontier(), this.timeSpent(), Memory.stringRep());
+        return String.format("#Explored: %,6d, #Frontier: %,6d, #Generated: %,6d, Time: %3.2f s \t%s", this.countExplored(), this.countFrontier(), this.countExplored() + this.countFrontier(), this.timeSpent(), Memory.stringRep());
     }
 
     public float timeSpent() {
@@ -133,39 +133,91 @@ public abstract class Strategy {
             return "Depth-first Search";
         }
     }
+    /*
+        public static class StrategyBestFirst extends Strategy {
+            private Heuristic heuristic;
+            private TreeSet<State> frontier;
+            private HashSet<State> frontierSet;
 
+            public StrategyBestFirst(Heuristic h) {
+                super();
+                heuristic = h;
+                frontier = new TreeSet<>(heuristic);
+                frontierSet = new HashSet<>();
+            }
+
+            @Override
+            public State getAndRemoveLeaf() {
+                State n = frontier.pollFirst();
+                frontierSet.remove(n);
+                System.err.println(n.agentRow+ " " + n.agentCol);
+                return n;
+            }
+
+            @Override
+            public void addToFrontier(State n) {
+                frontier.add(n);
+                frontierSet.add(n);
+            }
+
+            @Override
+            public int countFrontier() {
+                return frontier.size();
+            }
+
+            @Override
+            public boolean frontierIsEmpty() {
+                return frontier.isEmpty();
+            }
+
+            @Override
+            public boolean inFrontier(State n) {
+                return frontierSet.contains(n);
+            }
+
+            @Override
+            public String toString() {
+                return "Best-first Search using " + this.heuristic.toString();
+            }
+        }
+     */
     public static class StrategyBestFirst extends Strategy {
         private Heuristic heuristic;
-
+        private PriorityQueue<State> frontier;
+        private HashSet<State> frontierSet;
         public StrategyBestFirst(Heuristic h) {
             super();
             this.heuristic = h;
-            throw new NotImplementedException();
+            frontier = new PriorityQueue<>(heuristic);
+            frontierSet = new HashSet<>();
         }
 
         @Override
         public State getAndRemoveLeaf() {
-            throw new NotImplementedException();
+            State n = frontier.poll();
+            frontierSet.remove(n);
+            return n;
         }
 
         @Override
         public void addToFrontier(State n) {
-            throw new NotImplementedException();
+            frontier.add(n);
+            frontierSet.add(n);
         }
 
         @Override
         public int countFrontier() {
-            throw new NotImplementedException();
+            return frontier.size();
         }
 
         @Override
         public boolean frontierIsEmpty() {
-            throw new NotImplementedException();
+            return frontier.isEmpty();
         }
 
         @Override
         public boolean inFrontier(State n) {
-            throw new NotImplementedException();
+            return frontierSet.contains(n);
         }
 
         @Override
@@ -173,4 +225,5 @@ public abstract class Strategy {
             return "Best-first Search using " + this.heuristic.toString();
         }
     }
+
 }

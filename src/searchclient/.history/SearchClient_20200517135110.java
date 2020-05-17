@@ -80,7 +80,7 @@ public class SearchClient {
                     System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal().getId()));
 
                     // TODO REPLACE BY CHOSEN STRATEGY
-                    ArrayList<State> plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
+                    ArrayList<State> plan = Search(new Strategy..StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
 
                     if (plan != null) {
                         // TODO maybe if change plan to help someone, should do something with it

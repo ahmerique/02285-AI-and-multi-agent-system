@@ -13,6 +13,7 @@ public class SearchClient {
     public State initialState;
     public ArrayList<Goal> goalQueue;
     public ArrayList<Agent> agentList = new ArrayList<>();
+    public ArrayList<Agent> agentListByPriority = new ArrayList<>();
     public HashMap<Agent, ArrayList<State>> planByAgent = new HashMap<>();
     public State[] latestStateArray;
     public String[] latestServerOutput;
@@ -73,15 +74,40 @@ public class SearchClient {
         //  Example of working algorithm
         boolean finished = false;
         while (!finished) {
+
+
+
             for (Agent agent : agentList) {
                 agent.updateGoal(goalQueue);
+            }
 
+
+            // Check if all goals priority are inferior to the first element of goalQueue (For instance if
+            // only one agent can fill the first case of a deadEnd)
+            // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
+            for (Agent agent : agentList) {
+                if (agent.getCurrentGoal() != null){
+                    if (agent.getCurrentGoal().getPriority() != State.NORMAL_GOAL_PRIORITY
+                            && !goalQueue.isEmpty()
+                            && agent.getCurrentGoal().getPriority() < goalQueue.get(0).getPriority()){
+                        agent.requeueCurrentGoal(goalQueue);
+                  }
+                }
+            }
+
+            // Sort by goal priority
+            agentListByPriority.sort(AgentGoalComparator);
+
+
+            for (Agent agent : agentListByPriority) {
                 if (agent.getCurrentGoal() != null) {
                     System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal().getId()));
 
                     // TODO REPLACE BY CHOSEN STRATEGY
+                    //ArrayList<State> plan = Search(new Strategy.StrategyBFS(), agent, problemType.COMPLETE);
                     ArrayList<State> plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
 
+                    System.err.println(plan);
                     if (plan != null) {
                         // TODO maybe if change plan to help someone, should do something with it
                         ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
@@ -91,9 +117,11 @@ public class SearchClient {
                 }
             }
 
-            // TODO check if all goals priority are inferior to the first element of goalQueue (For instance if
-            //  only one agent can fill the first case of a deadEnd)
-            // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
+
+            // Make sure that goals finishes in the good order
+
+
+            // TODO keep track of previous path of agent. If there is a conflict, trackback  until no conflict or do something else
 
             // Execute as long as possible
             boolean cont = true;
@@ -225,6 +253,7 @@ public class SearchClient {
                             } else if ('0' <= chr && chr <= '9') { // Agent
                                 Agent newAgent = (Agent) State.setNewStateObject(i, j, "AGENT", chr, colors.get(Character.toString(chr)));
                                 agentList.add(newAgent);
+                                agentListByPriority.add(newAgent);
                                 planByAgent.put(newAgent, new ArrayList<>());
                             } else if ('A' <= chr && chr <= 'Z') { // Box
                                 State.setNewStateObject(i, j, "BOX", chr, colors.get(Character.toString(chr)));
@@ -248,15 +277,12 @@ public class SearchClient {
         }
 
         agentList.sort(Comparator.comparingInt(a -> Integer.parseInt(a.getId())));
-        System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
-        System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
+        System.err.println("----------- MAX_ROW = " + State.MAX_ROW);
+        System.err.println("----------- MAX_COL = " + State.MAX_COL);
         System.err.println("Done initializing");
     }
 
     private ArrayList<Goal> preprocessMap() {
-        int MAX_GOAL_PRIORITY = 1000; // for test 9;
-        int NORMAL_GOAL_PRIORITY = 100; // for test 1
-        int LOW_GOAL_PRIORITY = 0;
 
         HashSet<Coordinate> deadEndCaseSet = new HashSet<>();
         HashSet<Coordinate> corridorCaseSet = new HashSet<>();
@@ -281,21 +307,21 @@ public class SearchClient {
                     // We want to fill goals that are in dead end first
                     if (tempDegree == 1) {
                         deadEndCaseSet.add(tempCoordinate);
-                        State.degreeMap.put(tempCoordinate, MAX_GOAL_PRIORITY);
+                        State.degreeMap.put(tempCoordinate, State.MAX_GOAL_PRIORITY);
                     } else if (tempDegree == 2) {
                         // we want to fill corridor last to prevent clogs
                         if (cornerOrCorridor % 2 == 0) {
                             corridorCaseSet.add(tempCoordinate);
-                            State.degreeMap.put(tempCoordinate, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoordinate, State.LOW_GOAL_PRIORITY);
                         }
 
                         // A corner is a corridor if linked to one but else it's a free cell
                         else {
                             cornerCaseSet.add(tempCoordinate);
-                            State.degreeMap.put(tempCoordinate, NORMAL_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoordinate, State.NORMAL_GOAL_PRIORITY);
                         }
                     } else { // Normal free cell
-                        State.degreeMap.put(tempCoordinate, NORMAL_GOAL_PRIORITY);
+                        State.degreeMap.put(tempCoordinate, State.NORMAL_GOAL_PRIORITY);
                     }
                 }
             }
@@ -309,7 +335,7 @@ public class SearchClient {
 
             Coordinate prevCoor = deadEnd;
             Coordinate currentCoor = deadEnd;
-            int goalPriorityValue = MAX_GOAL_PRIORITY;
+            int goalPriorityValue = State.MAX_GOAL_PRIORITY;
             ArrayList<Coordinate> tempList = new ArrayList<>();
             tempList.add(deadEnd);
 
@@ -335,7 +361,7 @@ public class SearchClient {
                             tempList.add(tempCoor);
 
                         } else {// if not a corridor anymore, the end of a dead end is a low priority cell that shouldn't be closed too quickly
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             isCorridor = false;
                         }
 
@@ -384,10 +410,10 @@ public class SearchClient {
                         if (corridorCaseSet.contains(tempCoor)) {
                             corridorCaseSet.remove(tempCoor);
                         } else if (cornerCaseSet.contains(tempCoor)) { // a corner is a normal cell except if part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             cornerCaseSet.remove(tempCoor);
                         } else { // if not a corridor, the end of a corridor is part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             isCorridorLeft = false;
                         }
                         //add to list
@@ -398,10 +424,10 @@ public class SearchClient {
                         if (corridorCaseSet.contains(tempCoor)) {
                             corridorCaseSet.remove(tempCoor);
                         } else if (cornerCaseSet.contains(tempCoor)) { // a corner is a normal cell except if part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             cornerCaseSet.remove(tempCoor);
                         } else { // if not a corridor, the end of a corridor is part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             isCorridorRight = false;
                         }
                         tempCorridorList.add(tempCoor);
@@ -423,10 +449,10 @@ public class SearchClient {
                         if (corridorCaseSet.contains(tempCoor)) {
                             corridorCaseSet.remove(tempCoor);
                         } else if (cornerCaseSet.contains(tempCoor)) { // a corner is a normal cell except if part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             cornerCaseSet.remove(tempCoor);
                         } else { // if not a corridor anymore, the end of a corridor is part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY); // don't break so that one case corridor can modify its entrance and exit
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY); // don't break so that one case corridor can modify its entrance and exit
                             isCorridorLeft = false;
                         }
 
@@ -452,10 +478,10 @@ public class SearchClient {
                         if (corridorCaseSet.contains(tempCoor)) {
                             corridorCaseSet.remove(tempCoor);
                         } else if (cornerCaseSet.contains(tempCoor)) { // a corner is a normal cell except if part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             cornerCaseSet.remove(tempCoor);
                         } else { // if not a corridor anymore, the end of a corridor is part of a corridor
-                            State.degreeMap.put(tempCoor, LOW_GOAL_PRIORITY);
+                            State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             isCorridorRight = false;
                         }
 
@@ -528,11 +554,11 @@ public class SearchClient {
         }
     }
 
-    public static Comparator<Goal> goalComparator = new Comparator<>() {
-        @Override
-        public int compare(Goal o1, Goal o2) {
-            return o2.getPriority() - o1.getPriority();
-        }
+    public static Comparator<Goal> goalComparator = (o1, o2) -> o2.getPriority() - o1.getPriority();
+    public static Comparator<Agent> AgentGoalComparator = (a1, a2) -> {
+        int priority2 = a2.getCurrentGoal() == null ? 0 : a2.getCurrentGoal().getPriority();
+        int priority1 = a1.getCurrentGoal() == null ? 0 : a1.getCurrentGoal().getPriority();
+        return priority2 - priority1;
     };
 
     public ArrayList<State> Search(Strategy strategy, Agent agent, problemType typeOfProblem) {
@@ -542,6 +568,7 @@ public class SearchClient {
 
         // TODO Decide if the box should store a goal or the goal store a box.
         State firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId(), agent.getCurrentGoal().getAttachedBox().getId());
+        //State firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId());
 
         System.err.println(firstState);
 
@@ -560,7 +587,6 @@ public class SearchClient {
             }
 
             State leafState = strategy.getAndRemoveLeaf();
-
 
 
             if (leafState.isSubGoalState()) {
@@ -616,9 +642,11 @@ public class SearchClient {
             agentNumber++;
         }
 
+        System.err.println("Sending command: " + jointAction + "\n");
+
         if (noAct == agentList.size()) return false;
 
-        //System.err.println("Sending command: " + jointAction + "\n");
+        System.err.println("Sending command: " + jointAction + "\n");
 
         // Place message in buffer
         System.out.println(jointAction);

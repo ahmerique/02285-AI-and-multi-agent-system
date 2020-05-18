@@ -30,6 +30,9 @@ public class State {
     public static ArrayList<ArrayList<Coordinate>> busyDeadEndList = new ArrayList<>();
     public static ArrayList<ArrayList<Coordinate>> emptyDeadEndList = new ArrayList<>();
     public static ArrayList<ArrayList<Coordinate>> corridorList = new ArrayList<>();
+    public final static int MAX_GOAL_PRIORITY = 1000; // for test 9;
+    public final static int NORMAL_GOAL_PRIORITY = 100; // for test 1
+    public final static int LOW_GOAL_PRIORITY = 0;
 
     /**
      * LOCAL ATTRIBUTES
@@ -41,6 +44,7 @@ public class State {
     // TODO On peut peut être remplacer par de vraies objet car ils ne seront pas copiés, uniquement référencés.
     public String agentId;
     public String boxId;
+    public Coordinate destination;
     //
 
     private State parent;
@@ -59,17 +63,57 @@ public class State {
         this.parent = parent;
         this.agentId = parent.agentId;
         this.boxId = parent.boxId;
+        this.destination = parent.destination;
         this.g = parent.g() + 1;
 
         this.localCoordinateById = new HashMap<>();
         this.localIdByCoordinate = new HashMap<>();
     }
 
-    // firstStateCreator
+    // firstStateCreator move box to goal
     public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId, String boxId) throws AssertionError {
 
         this.agentId = agentId;
         this.boxId = boxId;
+        this.g = 0;
+
+        // copy hashmap
+        this.localCoordinateById = new HashMap<>();
+        this.localIdByCoordinate = new HashMap<>();
+        for (Coordinate key : localIdByCoordinate.keySet()) {
+            this.localIdByCoordinate.put(key, localIdByCoordinate.get(key));
+        }
+        for (String key : localCoordinateById.keySet()) {
+            this.localCoordinateById.put(key, localCoordinateById.get(key));
+        }
+
+        if (agentId == null) throw new AssertionError("MUST have an agentId");
+    }
+
+    // firstStateCreator move agent to destination
+    public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId, Coordinate destination) throws AssertionError {
+
+        this.agentId = agentId;
+        this.destination = destination;
+        this.g = 0;
+
+        // copy hashmap
+        this.localCoordinateById = new HashMap<>();
+        this.localIdByCoordinate = new HashMap<>();
+        for (Coordinate key : localIdByCoordinate.keySet()) {
+            this.localIdByCoordinate.put(key, localIdByCoordinate.get(key));
+        }
+        for (String key : localCoordinateById.keySet()) {
+            this.localCoordinateById.put(key, localCoordinateById.get(key));
+        }
+
+        if (agentId == null) throw new AssertionError("MUST have an agentId");
+    }
+
+    // firstStateCreator move agent to free cell
+    public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId) throws AssertionError {
+
+        this.agentId = agentId;
         this.g = 0;
 
         // copy hashmap
@@ -112,8 +156,15 @@ public class State {
 
     //TODO : Readapt this function to actual use case
     public boolean isSubGoalState() {
-        Box boxObject = (Box) realBoardObjectsById.get(boxId);
-        return boxObject.getBoxGoal().getCoordinate().equals(localCoordinateById.get(boxId));
+
+        if(boxId != null) {
+            Box boxObject = (Box) realBoardObjectsById.get(boxId);
+            return (boxObject.getBoxGoal().getCoordinate().equals(localCoordinateById.get(boxId)));
+        } else if (destination != null){
+            return destination.equals(localCoordinateById.get(agentId));
+        } else {
+            return degreeMap.get(localCoordinateById.get(agentId)) == NORMAL_GOAL_PRIORITY;
+        }
     }
 
     //Method to set a new object (agent:0, box:1, goal:2) in the State
@@ -157,11 +208,11 @@ public class State {
         int iterator = 0;
 
         //Process until id is new
-        while (realBoardObjectsById.containsKey(stringId + Integer.toString(iterator))) {
+        while (realBoardObjectsById.containsKey(stringId + iterator)) {
             iterator += 1;
         }
 
-        return (stringId + Integer.toString(iterator));
+        return (stringId + iterator);
     }
 
     // TODO update map from agent action
@@ -372,7 +423,11 @@ public class State {
             return false;
         if (!(this.localIdByCoordinate.equals(other.localIdByCoordinate)))
             return false;
-        if (!this.boxId.equals(other.boxId) || !this.agentId.equals(other.agentId))
+        if (!this.agentId.equals(other.agentId))
+            return false;
+        if ( this.boxId != null && !this.boxId.equals(other.boxId))
+            return false;
+        if (this.destination != null && !this.destination.equals(other.destination))
             return false;
 
         return true;

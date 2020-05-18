@@ -1,6 +1,8 @@
 package src.searchclient;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.PriorityQueue;
 
 public class Agent extends BoardObject {
@@ -28,6 +30,11 @@ public class Agent extends BoardObject {
         this.currentGoal = currentGoal;
     }
 
+    public void requeueCurrentGoal(ArrayList<Goal> goalQueue) {
+        Goal.insertInOrderedGoalList(goalQueue, this.currentGoal);
+        this.currentGoal = null;
+    }
+
     public void updateGoal(ArrayList<Goal> goalQueue) {
         if (currentGoal == null) {
             for (Goal tempGoal : goalQueue) {
@@ -36,9 +43,11 @@ public class Agent extends BoardObject {
                     break;
                 }
             }
+
             goalQueue.remove(currentGoal);
         } else {
             // TODO when there is a conflict for instance
         }
     }
+
 }

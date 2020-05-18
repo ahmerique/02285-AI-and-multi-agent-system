@@ -140,7 +140,7 @@ public abstract class Heuristic implements Comparator<State> {
 	 * @param c2 coordinate 2
 	 * @return distance form position c1 to position c2 on the board
 	 */
-    private double pullDistance(Coordinate c1, Coordinate c2) {
+    static public double pullDistance(Coordinate c1, Coordinate c2) {
 
         // Table with all possible directions of movements
         Command.Dir[] directions = Command.Dir.values();

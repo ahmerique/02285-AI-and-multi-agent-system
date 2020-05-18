@@ -16,6 +16,7 @@ public class SearchClient {
     public HashMap<Agent, ArrayList<State>> planByAgent = new HashMap<>();
     public State[] latestStateArray;
     public String[] latestServerOutput;
+    public HashMap<String, String> colors = new HashMap<>(); //All colors
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
 
@@ -163,7 +164,6 @@ public class SearchClient {
         int max_col = 0; //Maximum column reached
         int row = 0; //Iteration variable
         int countpart = 0; //Part of the initial file read
-        HashMap<String, String> colors = new HashMap<>(); //All colors
 
         String line = serverMessages.readLine();
 
@@ -496,36 +496,69 @@ public class SearchClient {
         return goalPriorityQueue;
     }
 
+    /**
+	 * Assigns to each box the best goal, depending on the chosen distance metric
+	 * @param method
+	 * @return void
+	 */
     private void matchGoalsAndBoxes() {
-		/* TODO
-		Inefficient but temporary method.
-		Needs to be made better to match goals and boxes according to heuristics.
 
-		for goal in setGoals:
-			for object in setBoxes:
-				if object is Box and object.letter == goal.letter:
-
-		*/
-
-        Set<Goal> setGoals = State.goalWithCoordinate.keySet();
+        Goal[] setGoals = State.goalWithCoordinate.keySet().toArray(new Goal[State.goalWithCoordinate.size()]);
         ArrayList<BoardObject> setBoxes = new ArrayList<>(State.realBoardObjectsById.values());
-        String colorToMatch;
+        int[][] scores = new int[setGoals.length][setGoals.length];
+        int i = 0;
+        int j = 0;
+        Coordinate coord1;
+        Coordinate coord2;
+        double score;
+
+        Iterator itr = setBoxes.iterator(); 
+        while (itr.hasNext()) 
+        { 
+            BoardObject b = (BoardObject)itr.next(); 
+            if (!(b instanceof Box)){
+                itr.remove(); 
+            }
+        } 
+
 
         for (Goal goal : setGoals) {
             char letterToMatch = goal.getLetter();
 
             for (BoardObject object : setBoxes) {
-                if (object instanceof Box) {
-                    // NOt a good way to call a child class method
-                    if (((Box) object).getLetter() == letterToMatch) {
-                        ((Box) object).setBoxGoal(goal);
-                        goal.setAttachedBox((Box) object);
-                        setBoxes.remove(object);
-                        break;
-                    }
+
+                if (((Box) object).getLetter() == letterToMatch) {
+                    coord1 = State.realCoordinateById.get(goal.getId());
+                    coord2 = State.realCoordinateById.get(object.getId());
+                    score = Heuristic.pullDistance(coord1, coord2);
+                    scores[i][j] = (int)score;
+                    //scores[i][j] = j;
+                } else {
+                    scores[i][j] = 9999;
                 }
+                
+                j += 1;
             }
+
+            i += 1;
+            j = 0;
         }
+
+        HungarianAlgorithm ha = new HungarianAlgorithm(scores);
+        int[][] assignments = ha.findOptimalAssignment();
+        Box box;
+        Goal goal;
+        System.err.println("----------- Len assignements = " + assignments.length);
+
+
+        for(int[] assi : assignments) {
+            box = ((Box) setBoxes.get(assi[0]));
+            goal = setGoals[assi[1]];
+            box.setBoxGoal(goal);
+            goal.setAttachedBox(box);
+            System.err.println("----------- Pair = " + box.getId() + " with " + goal.getId()+ " (" + scores[assi[0]][assi[1]] + ")");
+        }
+
     }
 
     public static Comparator<Goal> goalComparator = new Comparator<>() {

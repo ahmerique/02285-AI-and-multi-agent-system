@@ -182,10 +182,13 @@ public abstract class Heuristic implements Comparator<State> {
 
 		// Get the minimum distance from each box to its assigned goal and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
-            double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
-            sum += distanceMinimum;
-           
-        }
+			double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal(box.getKey(), box.getValue(), method);
+			sum += distanceMinimum;
+        
+
+
+
+
 		return sum;
     }
     
@@ -198,30 +201,47 @@ public abstract class Heuristic implements Comparator<State> {
 	 * @param method
 	 * @return distance from Box to its assigned Goal
 	 */
-	private double getMinimumDistanceFromBoxToAssignedGoal(Box box, Coordinate box_coordinates, String method) {
-		double distance = 0; // Value by default for a box without any Goal
-        //For each goal whose color match with the box color, calculate the distance according to given heuristic choice
-        if (box.getBoxGoal() != null){
-            if (method.equals("manhattan")){
-                distance = manhattan(box_coordinates, this.coordinateByGoal.get(box.getBoxGoal()));
+	private double getMinimumDistanceFromBoxToAssignedGoal(BoardObject box, Coordinate box_coordinates, String method) {
+		double minimumDistance = 9999; // Initialize the minimum distance at a very high value
+		
+		//For each goal whose color match with the box color, calculate the distance according to given heuristic choice
+		for (HashMap.Entry<Goal, Coordinate> goal : this.coordinateByGoal.entrySet()) {
+			double distance = 99999;
+			if (method.equals("manhattan")){
+                // Check if colors match
+                if (box.getColor().equals(goal.getKey().getColor())) { 
+                    distance = manhattan(box_coordinates, goal.getValue());
+                }
             }
 
             if (method.equals("euclidian")){
-                distance = euclidian(box_coordinates, this.coordinateByGoal.get(box.getBoxGoal()));
+                // Check if colors match
+                if (box.getColor().equals(goal.getKey().getColor())) { 
+                    distance = euclidian(box_coordinates, goal.getValue());
+                }
             }
 
             if (method.equals("pythagorean")){
-                distance = pythagorean(box_coordinates, this.coordinateByGoal.get(box.getBoxGoal()));
+                // Check if colors match
+                if (box.getColor().equals(goal.getKey().getColor())) { 
+                    distance = pythagorean(box_coordinates, goal.getValue());
+                }
             }
 
             if (method.equals("pullDistance")){
-                distance = pullDistance(box_coordinates, this.coordinateByGoal.get(box.getBoxGoal()));
+                // Check if colors match
+                if (box.getColor().equals(goal.getKey().getColor())) { 
+                    distance = pullDistance(box_coordinates, goal.getValue());
+                }
             }
             /* 
                 We can add other methods here    
-                */		
-        }
-		return distance;
+                */
+			if (distance < minimumDistance) {
+                minimumDistance = distance;
+            }
+		}
+		return minimumDistance;
     }
 
 

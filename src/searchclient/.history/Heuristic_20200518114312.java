@@ -172,7 +172,7 @@ public abstract class Heuristic implements Comparator<State> {
             };
             
             // Check and recurr on all possible movements from recurrent cell
-            for (Command.Dir direction: directions) {
+            for (Dir direction: directions) {
 
                 // Get next possible position coordinates
                 current.coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));

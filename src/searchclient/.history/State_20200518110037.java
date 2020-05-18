@@ -289,9 +289,7 @@ public class State {
     }
 
     public static boolean cellIsFreeFromWall(Coordinate coordinate) {
-        return State.wallByCoordinate.get(coordinate) == null 
-                && coordinate.getColumn() <= MAX_COL
-                && coordinate.getRow() <= MAX_ROW;
+        return State.wallByCoordinate.get(coordinate) == null;
     }
 
     private State childState() {

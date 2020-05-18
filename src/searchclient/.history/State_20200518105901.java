@@ -288,12 +288,6 @@ public class State {
                 && localIdByCoordinate.get(coordinate) == null;
     }
 
-    public static boolean cellIsFreeFromWall(Coordinate coordinate) {
-        return State.wallByCoordinate.get(coordinate) == null 
-                && coordinate.getColumn() <= MAX_COL
-                && coordinate.getRow() <= MAX_ROW;
-    }
-
     private State childState() {
         State copy = new State(this);
         for (Coordinate key : this.localIdByCoordinate.keySet()) {

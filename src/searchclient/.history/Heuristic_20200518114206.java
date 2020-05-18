@@ -143,7 +143,7 @@ public abstract class Heuristic implements Comparator<State> {
     private double pullDistance(Coordinate c1, Coordinate c2) {
 
         // Table with all possible directions of movements
-        Command.Dir[] directions = Command.Dir.values();
+        Dir[] directions = Command.Dir.values();
 
         // Create a queue
         Queue<Node_PullDist> q = new ArrayDeque<>();
@@ -172,7 +172,7 @@ public abstract class Heuristic implements Comparator<State> {
             };
             
             // Check and recurr on all possible movements from recurrent cell
-            for (Command.Dir direction: directions) {
+            for (Dir direction: directions) {
 
                 // Get next possible position coordinates
                 current.coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));

@@ -12,6 +12,7 @@ public abstract class Heuristic implements Comparator<State> {
     private HashMap<String, BoardObject> boxById = new HashMap<>(); // List Ids and Box objects
     private HashMap<String, BoardObject> agentById = new HashMap<>(); // List Ids and agent objects
     private HashMap<Goal, Coordinate> coordinateByGoal = new HashMap<>();
+    private HashMap<Coordinate, Boolean> wallByCoordinate = new HashMap<>();
 
     // Choice of method to compute the heuristic
     // Possible choices for now: "euclidian", "manhattan", "pythagorean", "pullDistance"
@@ -35,6 +36,8 @@ public abstract class Heuristic implements Comparator<State> {
         }
 
         this.coordinateByGoal = State.goalWithCoordinate;
+        this.wallByCoordinate = State.wallByCoordinate;
+ 
     }
 
 
@@ -141,12 +144,10 @@ public abstract class Heuristic implements Comparator<State> {
 	 * @return distance form position c1 to position c2 on the board
 	 */
     private double pullDistance(Coordinate c1, Coordinate c2) {
-
-        // Table with all possible directions of movements
-        Command.Dir[] directions = Command.Dir.values();
-
+        double minimumDistance = 9999; // Initialize the minimum distance at a very high value
+       
         // Create a queue
-        Queue<Node_PullDist> q = new ArrayDeque<>();
+        Queue<State> q = new ArrayDesque<>();
 
         // Enqueue first node = position of coordinate c1
         Node_PullDist start = new Node_PullDist(c1, 0);
@@ -158,7 +159,6 @@ public abstract class Heuristic implements Comparator<State> {
         // Add coordinates c1
         visited.add(c1);
 
-        // Stop to run when queue is empty
         while (!q.isEmpty()){
             
             // Pop front Node from queue and process it
@@ -167,40 +167,14 @@ public abstract class Heuristic implements Comparator<State> {
             int current_level = current.number_actions;
 
             // Return if c2 is reached
-            if (current_cord.equals(c2)) {
+            if (c1.equals(c2)) {
                 return current_level;
             };
             
-            // Check and recurr on all possible movements from recurrent cell
-            for (Command.Dir direction: directions) {
-
-                // Get next possible position coordinates
-                current.coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));
-                current.coord.setRow(current_cord.getRow() + Command.dirToRowChange(direction));
-
-                // Check if next cell is Free of wall or not
-                if(State.cellIsFreeFromWall(current_cord)) {
-
-                    // Add cell Node
-                    Node_PullDist next = new Node_PullDist(current.coord, current.number_actions+1);
-
-                    // Check if coordinate not visited yet
-                    if (!visited.contains(next.coord)){
-
-                        // Push Node in Queue and add the coordinate to visited list
-                        q.add(next);
-                        visited.add(next.coord);
-                    }
-
-                }
-
-            }
-
-
+            // Check if current cell is Free or is a wall
+            boolean cellFree = State.cellIsFree(current_cord);
         }
-        // If coordinate c2 is not reachable from coordinate c1, return a high distance
-        double minimumDistance = 9999; // Initialize the minimum distance at a very high value
-        return minimumDistance;
+        
     }
 
 

@@ -15,7 +15,7 @@ public abstract class Heuristic implements Comparator<State> {
 
     // Choice of method to compute the heuristic
     // Possible choices for now: "euclidian", "manhattan", "pythagorean", "pullDistance"
-    String heuristic_method = "manhattan"; 
+    String heuristic_method = "pullDistance"; 
 
 
     /**

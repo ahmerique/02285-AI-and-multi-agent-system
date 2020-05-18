@@ -142,11 +142,8 @@ public abstract class Heuristic implements Comparator<State> {
 	 */
     private double pullDistance(Coordinate c1, Coordinate c2) {
 
-        // Table with all possible directions of movements
-        Command.Dir[] directions = Command.Dir.values();
-
         // Create a queue
-        Queue<Node_PullDist> q = new ArrayDeque<>();
+        Queue<State> q = new ArrayDeque<>();
 
         // Enqueue first node = position of coordinate c1
         Node_PullDist start = new Node_PullDist(c1, 0);
@@ -172,11 +169,11 @@ public abstract class Heuristic implements Comparator<State> {
             };
             
             // Check and recurr on all possible movements from recurrent cell
-            for (Command.Dir direction: directions) {
+            for (int k=0; k<4; k++) {
 
                 // Get next possible position coordinates
-                current.coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));
-                current.coord.setRow(current_cord.getRow() + Command.dirToRowChange(direction));
+                current.coord.setColumn(current_cord.getColumn() + dirToColChange(Command.Dir));
+                current.coord.setRow(current_cord.getRow() + dirToRowChange(Command.Dir));
 
                 // Check if next cell is Free of wall or not
                 if(State.cellIsFreeFromWall(current_cord)) {

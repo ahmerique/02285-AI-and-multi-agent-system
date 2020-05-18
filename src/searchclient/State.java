@@ -27,9 +27,17 @@ public class State {
 
     // From preprocessing
     public static HashMap<Coordinate, Integer> degreeMap = new HashMap<>();
+
     public static ArrayList<ArrayList<Coordinate>> busyDeadEndList = new ArrayList<>();
     public static ArrayList<ArrayList<Coordinate>> emptyDeadEndList = new ArrayList<>();
     public static ArrayList<ArrayList<Coordinate>> corridorList = new ArrayList<>();
+
+    public static HashMap<Coordinate, Integer> corridorIndexByCoordinate = new HashMap<>();
+    public static HashMap<Coordinate, Integer> busyDeadEndIndexByCoordinate = new HashMap<>();
+
+    public static ArrayList<ArrayList<String>> busyDeadEndOccupancy = new ArrayList<>();
+    public static ArrayList<ArrayList<String>> corridorOccupancy = new ArrayList<>();
+
     public final static int MAX_GOAL_PRIORITY = 1000; // for test 9;
     public final static int NORMAL_GOAL_PRIORITY = 100; // for test 1
     public final static int LOW_GOAL_PRIORITY = 0;
@@ -157,10 +165,10 @@ public class State {
     //TODO : Readapt this function to actual use case
     public boolean isSubGoalState() {
 
-        if(boxId != null) {
+        if (boxId != null) {
             Box boxObject = (Box) realBoardObjectsById.get(boxId);
             return (boxObject.getBoxGoal().getCoordinate().equals(localCoordinateById.get(boxId)));
-        } else if (destination != null){
+        } else if (destination != null) {
             return destination.equals(localCoordinateById.get(agentId));
         } else {
             return degreeMap.get(localCoordinateById.get(agentId)) == NORMAL_GOAL_PRIORITY;
@@ -222,7 +230,7 @@ public class State {
 
         for (int i = 0; i < latestStateArray.length; i++) {
             if (latestServerOutput[i].equals("true")) {
-                if (latestStateArray[i] != null) {
+                if (latestStateArray[i] != null && latestStateArray[i].action != null) {
                     Command c = latestStateArray[i].action;
                     String agentId = latestStateArray[i].agentId;
                     Coordinate currentAgentCoordinate = realCoordinateById.get(agentId);
@@ -233,7 +241,7 @@ public class State {
                     if (c.actionType == Command.Type.Move) {
                         moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
                     } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
-                        String boxToMoveId = realBoxAt(nextAgentCoordinate);
+                        String boxToMoveId = realBoxAt(nextAgentCoordinate, realBoardObjectsById.get(agentId).getColor());
                         if (boxToMoveId != null) {
                             Coordinate nextBoxCoordinate = new Coordinate(
                                     nextAgentCoordinate.getRow() + dirToRowChange(c.dir2),
@@ -284,7 +292,7 @@ public class State {
                 }
 
             } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
-                String boxToMoveId = boxAt(nextAgentCoordinate);
+                String boxToMoveId = boxAt(nextAgentCoordinate, realBoardObjectsById.get(agentId).getColor());
                 if (boxToMoveId != null) {
                     Coordinate nextBoxCoordinate = new Coordinate(
                             nextAgentCoordinate.getRow() + dirToRowChange(c.dir2),
@@ -305,7 +313,7 @@ public class State {
                             currentAgentCoordinate.getRow() + dirToRowChange(c.dir2),
                             currentAgentCoordinate.getColumn() + dirToColChange(c.dir2));
                     // .. and there's a box in "dir2" of the agent
-                    String boxToMoveId = boxAt(expectedBoxCoordinate);
+                    String boxToMoveId = boxAt(expectedBoxCoordinate, realBoardObjectsById.get(agentId).getColor());
                     if (boxToMoveId != null) {
                         State n = this.childState();
                         n.action = c;
@@ -325,13 +333,24 @@ public class State {
      * If not the same color return null. So it won't be able to move that way.
      * Might not be necessary if we are in a relaxed problem
      */
-    private String boxAt(Coordinate expectedBoxCoordinate) {
+    private String boxAt(Coordinate expectedBoxCoordinate, String agentColor) {
         String objectId = localIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
-            return objectId;
-        } else {
-            return null;
+            if (realBoardObjectsById.get(objectId).getColor().equals(agentColor)) {
+                return objectId;
+            }
         }
+        return null;
+    }
+
+    private static String realBoxAt(Coordinate expectedBoxCoordinate, String agentColor) {
+        String objectId = realIdByCoordinate.get(expectedBoxCoordinate);
+        if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
+            if (realBoardObjectsById.get(objectId).getColor().equals(agentColor)) {
+                return objectId;
+            }
+        }
+        return null;
     }
 
     private boolean cellIsFree(Coordinate coordinate) {
@@ -362,14 +381,6 @@ public class State {
         realCoordinateById.replace(objectId, currentCoordinate, nextCoordinate);
     }
 
-    private static String realBoxAt(Coordinate expectedBoxCoordinate) {
-        String objectId = realIdByCoordinate.get(expectedBoxCoordinate);
-        if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
-            return objectId;
-        } else {
-            return null;
-        }
-    }
 
 
     public ArrayList<State> extractPlan() {
@@ -425,7 +436,7 @@ public class State {
             return false;
         if (!this.agentId.equals(other.agentId))
             return false;
-        if ( this.boxId != null && !this.boxId.equals(other.boxId))
+        if (this.boxId != null && !this.boxId.equals(other.boxId))
             return false;
         if (this.destination != null && !this.destination.equals(other.destination))
             return false;

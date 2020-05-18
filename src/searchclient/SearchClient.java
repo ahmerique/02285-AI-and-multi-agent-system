@@ -35,46 +35,9 @@ public class SearchClient {
 
         //----------- BEGIN MAIN LOOP -------------
 
-        // TODO REPLACE BY CHOSEN STRATEGY
-        // A*
-        Strategy strategy = new Strategy.StrategyBestFirst(new Heuristic.AStar());
-
-
-        /*
-        ArrayList<State> solution;
-        try {
-            solution = Search(strategy, agentList.get(0), problemType.COMPLETE); // TODO REPLACE BY REAL
-        } catch (OutOfMemoryError ex) {
-            System.err.println("Maximum memory usage exceeded.");
-            solution = null;
-        }
-
-        if (solution == null) {
-            System.err.println(strategy.searchStatus());
-            System.err.println("Unable to solve level.");
-            System.exit(0);
-        } else {
-            System.err.println("\nSummary for " + strategy.toString());
-            System.err.println("Found solution of length " + solution.size());
-            System.err.println(strategy.searchStatus());
-
-            for (State n : solution) {
-                String act = n.action.toString();
-                System.out.println(act);
-                String response = serverMessages.readLine();
-                if (response.contains("false")) {
-                    System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
-                    System.err.format("%s was attempted in \n%s\n", act, n.toString());
-                    break;
-                }
-            }
-        }
-        */
-
         //  Example of working algorithm
         boolean finished = false;
         while (!finished) {
-
 
 
             for (Agent agent : agentList) {
@@ -86,31 +49,41 @@ public class SearchClient {
             // only one agent can fill the first case of a deadEnd)
             // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
             for (Agent agent : agentList) {
-                if (agent.getCurrentGoal() != null){
+                if (agent.getCurrentGoal() != null) {
                     if (agent.getCurrentGoal().getPriority() != State.NORMAL_GOAL_PRIORITY
                             && !goalQueue.isEmpty()
-                            && agent.getCurrentGoal().getPriority() < goalQueue.get(0).getPriority()){
+                            && agent.getCurrentGoal().getPriority() < goalQueue.get(0).getPriority()) {
                         agent.requeueCurrentGoal(goalQueue);
-                  }
+                    }
                 }
             }
 
             // Sort by goal priority
             agentListByPriority.sort(AgentGoalComparator);
 
-
+            int minLength = 0;
             for (Agent agent : agentListByPriority) {
                 if (agent.getCurrentGoal() != null) {
-                    System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal().getId()));
+                    System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal()));
 
-                    // TODO REPLACE BY CHOSEN STRATEGY
+                    // Strategy choice
                     //ArrayList<State> plan = Search(new Strategy.StrategyBFS(), agent, problemType.COMPLETE);
                     ArrayList<State> plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
 
-                    System.err.println(plan);
                     if (plan != null) {
+
+                        // add NoOP to let the agent who has priority finish first
+                        int planSize = plan.size();
+                        if (planSize < minLength) {
+                            for (int i = 0; i < minLength - planSize + 1; i++) {
+                                plan.add(0, plan.get(0).getCopy());
+                            }
+                        }
+
                         // TODO maybe if change plan to help someone, should do something with it
                         ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
+                        minLength = plan.size();
+                        System.err.println(minLength);
                     } else {
                         System.err.println("Solution could not be found");
                     }
@@ -353,18 +326,17 @@ public class SearchClient {
                         if (corridorCaseSet.contains(tempCoor)) {
                             State.degreeMap.put(tempCoor, goalPriorityValue);
                             corridorCaseSet.remove(tempCoor);
-                            tempList.add(tempCoor);
 
                         } else if (cornerCaseSet.contains(tempCoor)) {
                             State.degreeMap.put(tempCoor, goalPriorityValue);
                             cornerCaseSet.remove(tempCoor);
-                            tempList.add(tempCoor);
 
                         } else {// if not a corridor anymore, the end of a dead end is a low priority cell that shouldn't be closed too quickly
                             State.degreeMap.put(tempCoor, State.LOW_GOAL_PRIORITY);
                             isCorridor = false;
                         }
 
+                        tempList.add(tempCoor); // exit is also part of the deadend
                         prevCoor = new Coordinate(currentCoor);
                         currentCoor = new Coordinate(tempCoor);
                         break;
@@ -510,14 +482,42 @@ public class SearchClient {
         System.err.println(corridorList);
         */
 
+        // Goal ordering
         ArrayList<Goal> goalPriorityQueue = new ArrayList<>(State.goalWithCoordinate.keySet());
         for (Goal tempGoal : goalPriorityQueue) {
             tempGoal.setPriority(State.degreeMap.get(tempGoal.getCoordinate()));
         }
         goalPriorityQueue.sort(goalComparator);
 
+        // Create accessor and occupancy for corridor and deadEnd
+        for (int i = 0; i < State.corridorList.size(); i++) {
+            State.corridorOccupancy.add(new ArrayList<>());
+            for (Coordinate tempCoor : State.corridorList.get(i)) {
+                State.corridorIndexByCoordinate.put(tempCoor, i);
+            }
+        }
+
+        for (int i = 0; i < State.busyDeadEndList.size(); i++) {
+            State.busyDeadEndOccupancy.add(new ArrayList<>());
+            for (Coordinate tempCoor : State.busyDeadEndList.get(i)) {
+                State.busyDeadEndIndexByCoordinate.put(tempCoor, i);
+            }
+        }
+
+        // Verify if any agent is inside a corridor or a deadEnd
+        for (Agent agent : agentList) {
+            Integer agentCorridor = State.corridorIndexByCoordinate.get(State.realCoordinateById.get(agent.getId()));
+            Integer agentDeadEnd = State.busyDeadEndIndexByCoordinate.get(State.realCoordinateById.get(agent.getId()));
+            if (agentCorridor != null) {
+                State.corridorOccupancy.get(agentCorridor).add(agent.getId());
+            } else if (agentDeadEnd != null) {
+                State.busyDeadEndOccupancy.get(agentDeadEnd).add(agent.getId());
+            }
+        }
 
         System.err.println("Finished preprocessing of the map");
+        System.err.println(State.busyDeadEndOccupancy);
+
 
         return goalPriorityQueue;
     }
@@ -610,7 +610,7 @@ public class SearchClient {
 
         // Concatenate action for each agent (agentList is ordered by name)
         int agentNumber = 0;
-        for (Agent agent : agentList) {
+        for (Agent agent : agentListByPriority) {
 
             State next;
             String actionString;
@@ -618,13 +618,13 @@ public class SearchClient {
             // get next State and remove it from plan
             if (planByAgent.get(agent).size() > 0) {
                 next = planByAgent.get(agent).get(0);
-                this.latestStateArray[agentNumber] = next;
-                planByAgent.get(agent).remove(0);
 
-                if (next.action == null) { // Deliberate NoOp
-                    actionString = "NoOp";
-                } else {
+                if (checkNextStep(next)) {
+                    this.latestStateArray[agentNumber] = next;
+                    planByAgent.get(agent).remove(0);
                     actionString = next.action.toString();
+                } else {
+                    actionString = "NoOp";
                 }
             } else { // If plan has been fully executed
                 //System.err.println("Agent " + agent.getId() + " reached its goal " + agent.getCurrentGoal());
@@ -642,21 +642,17 @@ public class SearchClient {
             agentNumber++;
         }
 
-        System.err.println("Sending command: " + jointAction + "\n");
-
         if (noAct == agentList.size()) return false;
-
-        System.err.println("Sending command: " + jointAction + "\n");
 
         // Place message in buffer
         System.out.println(jointAction);
-
         // Flush buffer
         System.out.flush();
 
-        // Disregard these for now, but read or the server stalls when its output buffer gets filled!
         String serverAnswer = serverMessages.readLine();
-        //System.err.println(serverAnswer);
+
+        System.err.println("Command: " + jointAction);
+        System.err.println("Answer: " + serverAnswer + "\n");
 
         if (serverAnswer == null) return false;
 
@@ -667,6 +663,43 @@ public class SearchClient {
             if (returnVal.equals("false")) {
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    public boolean checkNextStep(State next) {
+        if (next.action != null) {
+
+            // ---- CHECK DEADEND ----
+            if (next.action.actionType == Command.Type.Move) {
+                //check agent is not in deadend
+                Coordinate nextAgentCoor = next.getLocalCoordinateById().get(next.agentId);
+                if (State.busyDeadEndIndexByCoordinate.containsKey(nextAgentCoor)) {
+                    Integer index = State.busyDeadEndIndexByCoordinate.get(nextAgentCoor);
+                    if (!State.busyDeadEndOccupancy.get(index).isEmpty() && !State.busyDeadEndOccupancy.get(index).contains(next.agentId)) {
+                        return false;
+                    } else {
+                        // enter the deadend and mark it as occupied
+                    }
+                }
+            } else {
+                // check box and agent is not in deadend
+                Coordinate nextAgentCoor = next.getLocalCoordinateById().get(next.agentId);
+                Coordinate nextBoxCoor = Command.movedBoxPosition(next.action, next.getLocalCoordinateById().get(next.agentId));
+                if (State.busyDeadEndIndexByCoordinate.containsKey(nextBoxCoor)) {
+                    Integer index = State.busyDeadEndIndexByCoordinate.get(nextBoxCoor);
+                    if (!State.busyDeadEndOccupancy.get(index).isEmpty() && !State.busyDeadEndOccupancy.get(index).contains(next.agentId)) {
+                        return false;
+                    }
+                }
+            }
+
+
+            // ---- CHECK CORRIDOR ----
+
+        } else {
+            return false;
         }
 
         return true;

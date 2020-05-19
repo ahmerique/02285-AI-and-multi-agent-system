@@ -164,7 +164,6 @@ public class State {
 
     //TODO : Readapt this function to actual use case
     public boolean isSubGoalState() {
-
         if (boxId != null) {
             Box boxObject = (Box) realBoardObjectsById.get(boxId);
             return (boxObject.getBoxGoal().getCoordinate().equals(localCoordinateById.get(boxId)));
@@ -253,7 +252,7 @@ public class State {
                         Coordinate expectedBoxCoordinate = new Coordinate(
                                 currentAgentCoordinate.getRow() + dirToRowChange(c.dir2),
                                 currentAgentCoordinate.getColumn() + dirToColChange(c.dir2));
-                        String boxToMoveId = realBoxAt(expectedBoxCoordinate);
+                        String boxToMoveId = realBoxAt(expectedBoxCoordinate, realBoardObjectsById.get(agentId).getColor());
                         if (boxToMoveId != null) {
                             moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
                             moveRealObject(boxToMoveId, expectedBoxCoordinate, currentAgentCoordinate);
@@ -328,11 +327,6 @@ public class State {
         return expandedStates;
     }
 
-    /**
-     * TODO Add color management
-     * If not the same color return null. So it won't be able to move that way.
-     * Might not be necessary if we are in a relaxed problem
-     */
     private String boxAt(Coordinate expectedBoxCoordinate, String agentColor) {
         String objectId = localIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
@@ -380,7 +374,6 @@ public class State {
         realIdByCoordinate.remove(currentCoordinate, objectId);
         realCoordinateById.replace(objectId, currentCoordinate, nextCoordinate);
     }
-
 
 
     public ArrayList<State> extractPlan() {
@@ -471,6 +464,5 @@ public class State {
         }
         return s.toString();
     }
-
 
 }

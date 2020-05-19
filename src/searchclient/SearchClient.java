@@ -39,11 +39,9 @@ public class SearchClient {
         boolean finished = false;
         while (!finished) {
 
-
             for (Agent agent : agentList) {
                 agent.updateGoal(goalQueue);
             }
-
 
             // Check if all goals priority are inferior to the first element of goalQueue (For instance if
             // only one agent can fill the first case of a deadEnd)
@@ -616,17 +614,22 @@ public class SearchClient {
             String actionString;
 
             // get next State and remove it from plan
-            if (planByAgent.get(agent).size() > 0) {
+            if (planByAgent.get(agent).size() > 0 ) {
                 next = planByAgent.get(agent).get(0);
 
-                if (checkNextStep(next)) {
+                if(next.action == null){
+                    this.latestStateArray[agentNumber] = next;
+                    planByAgent.get(agent).remove(0);
+                    actionString = "NoOp";
+                }
+                else if (checkNextStep(next)) { // check corridor/deadEnd
                     this.latestStateArray[agentNumber] = next;
                     planByAgent.get(agent).remove(0);
                     actionString = next.action.toString();
                 } else {
                     actionString = "NoOp";
                 }
-            } else { // If plan has been fully executed
+            } else { // If plan has been fully executed or agent is waiting for other agent to do smth
                 //System.err.println("Agent " + agent.getId() + " reached its goal " + agent.getCurrentGoal());
                 noAct++;
                 actionString = "NoOp";
@@ -668,9 +671,12 @@ public class SearchClient {
         return true;
     }
 
+    /**
+     * @param next NOT NULL, Next state of the plan to send to the server
+     * @return true if next step is valid, false if next step is deliberate NoOP (waiting)
+     */
     public boolean checkNextStep(State next) {
-        if (next.action != null) {
-
+/*
             // ---- CHECK DEADEND ----
             if (next.action.actionType == Command.Type.Move) {
                 //check agent is not in deadend
@@ -678,29 +684,46 @@ public class SearchClient {
                 if (State.busyDeadEndIndexByCoordinate.containsKey(nextAgentCoor)) {
                     Integer index = State.busyDeadEndIndexByCoordinate.get(nextAgentCoor);
                     if (!State.busyDeadEndOccupancy.get(index).isEmpty() && !State.busyDeadEndOccupancy.get(index).contains(next.agentId)) {
+                        // ask for him to go out
+                        for (String agentId : State.busyDeadEndOccupancy.get(index)) {
+                            Agent tempAgent = (Agent) State.realBoardObjectsById.get(agentId);
+                            if (tempAgent.getCurrentGoal() == null && tempAgent.destinationGoal == null) {
+                                // TODO ----------------------------------------------------------------------------------------
+                                tempAgent.moveToCornerCaseGoal = true;
+                            }
+                        }
                         return false;
                     } else {
+                        // Do it if move validated
                         // enter the deadend and mark it as occupied
+                        State.busyDeadEndOccupancy.get(index).add(next.agentId);
+                        return true;
                     }
                 }
-            } else {
+            } else { // PULL OR PUSH
                 // check box and agent is not in deadend
                 Coordinate nextAgentCoor = next.getLocalCoordinateById().get(next.agentId);
                 Coordinate nextBoxCoor = Command.movedBoxPosition(next.action, next.getLocalCoordinateById().get(next.agentId));
-                if (State.busyDeadEndIndexByCoordinate.containsKey(nextBoxCoor)) {
-                    Integer index = State.busyDeadEndIndexByCoordinate.get(nextBoxCoor);
+                if (State.busyDeadEndIndexByCoordinate.containsKey(nextBoxCoor) || State.busyDeadEndIndexByCoordinate.containsKey(nextAgentCoor) ) {
+                    Integer index = State.busyDeadEndIndexByCoordinate.get(nextBoxCoor) != null ?
+                            State.busyDeadEndIndexByCoordinate.get(nextBoxCoor):
+                            State.busyDeadEndIndexByCoordinate.get(nextAgentCoor);
                     if (!State.busyDeadEndOccupancy.get(index).isEmpty() && !State.busyDeadEndOccupancy.get(index).contains(next.agentId)) {
+                        //Ask them to go out
+                        for (String agentId : State.busyDeadEndOccupancy.get(index)) {
+                            Agent tempAgent = (Agent) State.realBoardObjectsById.get(agentId);
+                            if (tempAgent.getCurrentGoal() == null && tempAgent.destinationGoal == null) {
+                                // TODO ----------------------------------------------------------------------------------------
+                                tempAgent.moveToCornerCaseGoal = true;
+                            }
+                        }
                         return false;
                     }
                 }
             }
+*/
 
-
-            // ---- CHECK CORRIDOR ----
-
-        } else {
-            return false;
-        }
+            // ---- TODO CHECK CORRIDOR ----
 
         return true;
     }

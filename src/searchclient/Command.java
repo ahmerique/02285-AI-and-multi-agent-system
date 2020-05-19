@@ -81,6 +81,8 @@ public class Command {
         }
     }
 
+
+
     public final Type actionType;
     public final Dir dir1;
     public final Dir dir2;

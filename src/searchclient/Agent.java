@@ -10,6 +10,9 @@ public class Agent extends BoardObject {
     private int counter = 0;
 
     private Goal currentGoal;
+    public Coordinate destinationGoal;
+    public Boolean moveToCornerCaseGoal;
+    public Boolean isWaiting = false;
 
     /**
      * Instantiate a new Agent

@@ -142,12 +142,6 @@ public abstract class Heuristic implements Comparator<State> {
 	 */
     static public double pullDistance(Coordinate c1, Coordinate c2) {
 
-        //To help Gaetan to debug his function
-        if (c1 == null){
-            System.err.println("Gaetan sac à merde");
-        };
-
-
         // Table with all possible directions of movements
         Command.Dir[] directions = Command.Dir.values();
 
@@ -174,28 +168,31 @@ public abstract class Heuristic implements Comparator<State> {
 
             // Return if c2 is reached
             if (current_cord.equals(c2)) {
-                return current_level;
+                return (double) current_level;
             };
             
             // Check and recurr on all possible movements from recurrent cell
             for (Command.Dir direction: directions) {
 
+                Coordinate next_coord = new Coordinate(current_cord.getRow(),current_cord.getColumn());
+
                 // Get next possible position coordinates
-                current.coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));
-                current.coord.setRow(current_cord.getRow() + Command.dirToRowChange(direction));
+                next_coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));
+                next_coord.setRow(current_cord.getRow() + Command.dirToRowChange(direction));
+
 
                 // Check if next cell is Free of wall or not
-                if(State.cellIsFreeFromWall(current_cord)) {
-
+                if(State.cellIsFreeFromWall(next_coord)) {
+                    
                     // Add cell Node
-                    Node_PullDist next = new Node_PullDist(current.coord, current.number_actions+1);
+                    Node_PullDist next = new Node_PullDist(next_coord, current.number_actions+1);
 
                     // Check if coordinate not visited yet
-                    if (!visited.contains(next.coord)){
+                    if (!visited.contains(next_coord)){
 
                         // Push Node in Queue and add the coordinate to visited list
                         q.add(next);
-                        visited.add(next.coord);
+                        visited.add(next_coord);
                     }
 
                 }
@@ -250,7 +247,7 @@ public abstract class Heuristic implements Comparator<State> {
             };
         }
         
-
+        
         //Get the minimum distance from each box to its assigned goal and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
             double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);

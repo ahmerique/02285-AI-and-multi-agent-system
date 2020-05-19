@@ -149,7 +149,7 @@ public class State {
                 return newBox;
 
             case "GOAL"://Goal
-                finalId = generateUniqueId(id);
+                finalId = 'g' + generateUniqueId(id);
                 Goal newGoal = new Goal(finalId, color, coord, id);
                 State.goalWithCoordinate.put(newGoal, coord);
                 State.goalByCoordinate.put(coord, newGoal);

@@ -248,8 +248,8 @@ public class SearchClient {
         }
 
         agentList.sort(Comparator.comparingInt(a -> Integer.parseInt(a.getId())));
-        System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
-        System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
+        //System.err.println("----------- MAX_ROW = " + Integer.toString(State.MAX_ROW));
+        //System.err.println("----------- MAX_COL = " + Integer.toString(State.MAX_COL));
         System.err.println("Done initializing");
     }
 
@@ -505,7 +505,6 @@ public class SearchClient {
 
         Goal[] setGoals = State.goalWithCoordinate.keySet().toArray(new Goal[State.goalWithCoordinate.size()]);
         ArrayList<BoardObject> setBoxes = new ArrayList<>(State.realBoardObjectsById.values());
-        int[][] scores = new int[setGoals.length][setGoals.length];
         int i = 0;
         int j = 0;
         Coordinate coord1;
@@ -521,6 +520,9 @@ public class SearchClient {
             }
         } 
 
+        //System.err.println("----------- LEN SETBOXES = " + setBoxes.size());
+        //System.err.println("----------- LEN SETGOALS = " + setGoals.length);
+        double[][] scores = new double[setBoxes.size()][setGoals.length];
 
         for (Goal goal : setGoals) {
             char letterToMatch = goal.getLetter();
@@ -528,13 +530,15 @@ public class SearchClient {
             for (BoardObject object : setBoxes) {
 
                 if (((Box) object).getLetter() == letterToMatch) {
-                    coord1 = State.realCoordinateById.get(goal.getId());
+                    coord1 = State.goalWithCoordinate.get(goal);
                     coord2 = State.realCoordinateById.get(object.getId());
-                    //score = Heuristic.pullDistance(coord1, coord2);
-                    //scores[i][j] = (int)score;
-                    scores[i][j] = j;
+                    //System.err.println("----------- Coord1 = " + coord1 + ", Coord2 = " + coord2);
+                    score = Heuristic.pullDistance(coord1, coord2);
+                    //System.err.println("----------- Pull Distance = " + object.getId() + " with " + goal.getId()+ " (" + (int)score + ")");
+                    scores[j][i] = score;
+                    //scores[j][i] = j;
                 } else {
-                    scores[i][j] = 9999;
+                    scores[j][i] = 10000;
                 }
                 
                 j += 1;
@@ -545,18 +549,18 @@ public class SearchClient {
         }
 
         HungarianAlgorithm ha = new HungarianAlgorithm(scores);
-        int[][] assignments = ha.findOptimalAssignment();
+        int[] jobs = ha.execute();
         Box box;
         Goal goal;
-        System.err.println("----------- Len assignements = " + assignments.length);
 
-
-        for(int[] assi : assignments) {
-            box = ((Box) setBoxes.get(assi[0]));
-            goal = setGoals[assi[1]];
-            box.setBoxGoal(goal);
-            goal.setAttachedBox(box);
-            System.err.println("----------- Pair = " + box.getId() + " with " + goal.getId()+ " (" + scores[assi[0]][assi[1]] + ")");
+        for(int k = 0; k < jobs.length; k++) {
+            if(jobs[k] != -1){
+                box = ((Box) setBoxes.get(k));
+                goal = setGoals[jobs[k]];
+                box.setBoxGoal(goal);
+                goal.setAttachedBox(box);
+                //System.err.println("----------- Pair = " + box.getId() + " with " + goal.getId()+ " (" + scores[k][jobs[k]] + ")");
+            }
         }
 
     }
@@ -576,7 +580,7 @@ public class SearchClient {
         // TODO Decide if the box should store a goal or the goal store a box.
         State firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId(), agent.getCurrentGoal().getAttachedBox().getId());
 
-        System.err.println(firstState);
+        //System.err.println(firstState);
 
         strategy.addToFrontier(firstState);
 

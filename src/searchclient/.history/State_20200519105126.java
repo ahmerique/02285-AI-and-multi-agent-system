@@ -98,15 +98,6 @@ public class State {
     /**
      * GETTER AND SETTER
      **/
-
-    public String getAgentId(){
-        return this.agentId;
-    }
-
-    public String getBoxId(){
-        return this.boxId;
-    }
-
     public HashMap<String, Coordinate> getLocalCoordinateById() {
         return this.localCoordinateById;
     }
@@ -191,7 +182,7 @@ public class State {
                     if (c.actionType == Command.Type.Move) {
                         moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
                     } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
-                        String boxToMoveId = realBoxAt(nextAgentCoordinate, realBoardObjectsById.get(agentId).getColor());
+                        String boxToMoveId = realBoxAt(nextAgentCoordinate);
                         if (boxToMoveId != null) {
                             Coordinate nextBoxCoordinate = new Coordinate(
                                     nextAgentCoordinate.getRow() + dirToRowChange(c.dir2),
@@ -203,7 +194,7 @@ public class State {
                         Coordinate expectedBoxCoordinate = new Coordinate(
                                 currentAgentCoordinate.getRow() + dirToRowChange(c.dir2),
                                 currentAgentCoordinate.getColumn() + dirToColChange(c.dir2));
-                        String boxToMoveId = realBoxAt(expectedBoxCoordinate, realBoardObjectsById.get(agentId).getColor());
+                        String boxToMoveId = realBoxAt(expectedBoxCoordinate);
                         if (boxToMoveId != null) {
                             moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
                             moveRealObject(boxToMoveId, expectedBoxCoordinate, currentAgentCoordinate);
@@ -242,7 +233,7 @@ public class State {
                 }
 
             } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
-                String boxToMoveId = boxAt(nextAgentCoordinate, realBoardObjectsById.get(agentId).getColor());
+                String boxToMoveId = boxAt(nextAgentCoordinate);
                 if (boxToMoveId != null) {
                     Coordinate nextBoxCoordinate = new Coordinate(
                             nextAgentCoordinate.getRow() + dirToRowChange(c.dir2),
@@ -263,7 +254,7 @@ public class State {
                             currentAgentCoordinate.getRow() + dirToRowChange(c.dir2),
                             currentAgentCoordinate.getColumn() + dirToColChange(c.dir2));
                     // .. and there's a box in "dir2" of the agent
-                    String boxToMoveId = boxAt(expectedBoxCoordinate, realBoardObjectsById.get(agentId).getColor());
+                    String boxToMoveId = boxAt(expectedBoxCoordinate);
                     if (boxToMoveId != null) {
                         State n = this.childState();
                         n.action = c;
@@ -283,10 +274,10 @@ public class State {
      * If not the same color return null. So it won't be able to move that way.
      * Might not be necessary if we are in a relaxed problem
      */
-    private String boxAt(Coordinate expectedBoxCoordinate, String agentcolor) {
+    private String boxAt(Coordinate expectedBoxCoordinate) {
         String objectId = localIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
-            if (realBoardObjectsById.get(objectId).getColor().equals(agentcolor)) {
+            if (realBoardObjectsById.get(objectId).getColor().equals(agentColor)) {
                 return objectId;
             }
         }
@@ -328,10 +319,10 @@ public class State {
         realCoordinateById.replace(objectId, currentCoordinate, nextCoordinate);
     }
 
-    private static String realBoxAt(Coordinate expectedBoxCoordinate, String agentcolor) {
+    private static String realBoxAt(Coordinate expectedBoxCoordinate) {
         String objectId = realIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
-            if (realBoardObjectsById.get(objectId).getColor().equals(agentcolor)) {
+            if (realBoardObjectsById.get(objectId).getColor().equals(agentColor)) {
                 return objectId;
             }
         } 

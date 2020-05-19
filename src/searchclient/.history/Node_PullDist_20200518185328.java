@@ -19,6 +19,13 @@ public class Node_PullDist {
         this.number_actions = number_actions;
 
     }
+
+    public Coordinate getCoord() {
+        return this.coord;
+    }
     
+    public int getNumber_actions() {
+        return this.number_actions;
+    }
     
 }

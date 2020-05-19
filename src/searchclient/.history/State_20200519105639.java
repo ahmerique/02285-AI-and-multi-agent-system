@@ -98,15 +98,6 @@ public class State {
     /**
      * GETTER AND SETTER
      **/
-
-    public String getAgentId(){
-        return this.agentId;
-    }
-
-    public String getBoxId(){
-        return this.boxId;
-    }
-
     public HashMap<String, Coordinate> getLocalCoordinateById() {
         return this.localCoordinateById;
     }
@@ -286,7 +277,7 @@ public class State {
     private String boxAt(Coordinate expectedBoxCoordinate, String agentcolor) {
         String objectId = localIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
-            if (realBoardObjectsById.get(objectId).getColor().equals(agentcolor)) {
+            if (realBoardObjectsById.get(objectId).getColor().equals(agentColor)) {
                 return objectId;
             }
         }
@@ -331,7 +322,7 @@ public class State {
     private static String realBoxAt(Coordinate expectedBoxCoordinate, String agentcolor) {
         String objectId = realIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
-            if (realBoardObjectsById.get(objectId).getColor().equals(agentcolor)) {
+            if (realBoardObjectsById.get(objectId).getColor().equals(agentColor)) {
                 return objectId;
             }
         } 

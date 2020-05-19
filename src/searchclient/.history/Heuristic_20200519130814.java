@@ -286,13 +286,21 @@ public abstract class Heuristic implements Comparator<State> {
         // V4: heuristic evaluated only on Agent form current State and its goal, and on all Boxes movable by the Agent compared to their assigned Goal
         HashMap<BoardObject, Coordinate> coordinateByBox = this.getAllCoordinate(n, "Box");
         
-        if (n.getBoxId() != null) {
+        //if (n.getBoxId() != null) {
             // Get the minimum distance from the current agent to its assigned Box, and add the minimum distance to the Sum
             double agentDistanceMinimum = getMinimumDistanceFromAgentToAssignedBoxAtState(n.getLocalCoordinateById().get(n.getAgentId()), 
                                                                                             n.getLocalCoordinateById().get(n.getBoxId()), 
                                                                                             method);
             sum += agentDistanceMinimum;
-        }
+
+
+            //Get the minimum distance from each box movable by the agent to its assigned goal and add the minimum distance to the Sum
+            for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
+                if (State.realBoardObjectsById.get(n.getAgentId()).getColor() == box.getKey().getColor()){
+                    double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
+                    sum += distanceMinimum;
+                }
+           // } 
         /*
         else {
             // Case when Box is null
@@ -301,14 +309,7 @@ public abstract class Heuristic implements Comparator<State> {
             
         }
         */
-        //Get the minimum distance from each box movable by the agent to its assigned goal and add the minimum distance to the Sum
-        for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
-            if (State.realBoardObjectsById.get(n.getAgentId()).getColor() == box.getKey().getColor()){
-                double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
-                sum += distanceMinimum;
-            }
-        } 
-                
+        }
         return sum;
     }
     

@@ -530,7 +530,7 @@ public class SearchClient {
                 if (((Box) object).getLetter() == letterToMatch) {
                     coord1 = State.realCoordinateById.get(goal.getId());
                     coord2 = State.realCoordinateById.get(object.getId());
-                    //score = Heuristic.pullDistance(coord1, coord2);
+                    score = Heuristic.pullDistance(coord1, coord2);
                     //scores[i][j] = (int)score;
                     scores[i][j] = j;
                 } else {

@@ -98,15 +98,6 @@ public class State {
     /**
      * GETTER AND SETTER
      **/
-
-    public String getAgentId(){
-        return this.agentId;
-    }
-
-    public String getBoxId(){
-        return this.boxId;
-    }
-
     public HashMap<String, Coordinate> getLocalCoordinateById() {
         return this.localCoordinateById;
     }

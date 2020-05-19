@@ -218,13 +218,13 @@ public abstract class Heuristic implements Comparator<State> {
 	 */
 	public double calculate_distance(State n, String method) {
         double sum = 0;
-        
-        /* 
-        // V1 - Don't take the assigned GOAL to BOX and Agent into account
-        /*
         HashMap<BoardObject, Coordinate> coordinateByBox = this.getAllCoordinate(n, "Box");
         HashMap<BoardObject, Coordinate> coordinateByAgent = this.getAllCoordinate(n, "Agent");
+        
 
+        
+        // V1 - Don't take the assigned GOAL to BOX and Agent into account
+        /*
         // Get the minimum distance from each agent to the nearest box, and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> agent : coordinateByAgent.entrySet()) {
 			double agentDistanceMinimum = getMinimumDistanceFromAgentToBoxes((Agent) agent.getKey(), agent.getValue(), coordinateByBox, method);
@@ -237,79 +237,27 @@ public abstract class Heuristic implements Comparator<State> {
 			sum += distanceMinimum;
 		}
         */
-        
         //V2
-        /*
-        HashMap<BoardObject, Coordinate> coordinateByBox = this.getAllCoordinate(n, "Box");
-        HashMap<BoardObject, Coordinate> coordinateByAgent = this.getAllCoordinate(n, "Agent");
+		
         // Get the minimum distance from each agent to its assigned Box, and add the minimum distance to the Sum
+        
         for (HashMap.Entry<BoardObject, Coordinate> agent : coordinateByAgent.entrySet()) {
-            if (((Agent) agent.getKey()).getCurrentGoal() != null){
+            if ((Agent) agent.getKey().getCurrentGoal() != null){
                 double agentDistanceMinimum = getMinimumDistanceFromAgentToAssignedBox((Agent) agent.getKey(), agent.getValue(), coordinateByBox, method);
                 sum += agentDistanceMinimum;
             };
         }
         
 
-        //Get the minimum distance from each box to its assigned goal and add the minimum distance to the Sum
+        // Get the minimum distance from each box to its assigned goal and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
             double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
             sum += distanceMinimum;
            
         }
-        */
 
-        // V3: Heuristic evaluated only on Agent and Box from current State. Problem = Agent don't know when moving Box already placed on Goal
-        /*
-        if (n.getBoxId() != null) {
-            // Get the minimum distance from the current agent to its assigned Box, and add the minimum distance to the Sum
-            double agentDistanceMinimum = getMinimumDistanceFromAgentToAssignedBoxAtState(n.getLocalCoordinateById().get(n.getAgentId()), 
-                                                                                            n.getLocalCoordinateById().get(n.getBoxId()), 
-                                                                                            method);
-            sum += agentDistanceMinimum;
 
-            // Get the minimum distance from the current box to its assigned goal and add the minimum distance to the Sum
-            double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) State.realBoardObjectsById.get(n.getBoxId()), n.getLocalCoordinateById().get(n.getBoxId()), method);
-            sum += distanceMinimum; 
-            
-           } 
-        /*
-        else {
-            // Case when Box is null
-            // We are then simply interested in moving the agent to a specific location
-            sum = manhattan(n.getLocalCoordinateById().get(n.getAgentId()), coordonnées de la destination)
-            
-        }
-        */
-        
-
-        // V4: heuristic evaluated only on Agent form current State and its goal, and on all Boxes movable by the Agent compared to their assigned Goal
-        HashMap<BoardObject, Coordinate> coordinateByBox = this.getAllCoordinate(n, "Box");
-        
-        if (n.getBoxId() != null) {
-            // Get the minimum distance from the current agent to its assigned Box, and add the minimum distance to the Sum
-            double agentDistanceMinimum = getMinimumDistanceFromAgentToAssignedBoxAtState(n.getLocalCoordinateById().get(n.getAgentId()), 
-                                                                                            n.getLocalCoordinateById().get(n.getBoxId()), 
-                                                                                            method);
-            sum += agentDistanceMinimum;
-        }
-        /*
-        else {
-            // Case when Box is null
-            // We are then simply interested in moving the agent to a specific location
-            sum = manhattan(n.getLocalCoordinateById().get(n.getAgentId()), coordonnées de la destination)
-            
-        }
-        */
-        //Get the minimum distance from each box movable by the agent to its assigned goal and add the minimum distance to the Sum
-        for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
-            if (State.realBoardObjectsById.get(n.getAgentId()).getColor() == box.getKey().getColor()){
-                double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
-                sum += distanceMinimum;
-            }
-        } 
-                
-        return sum;
+		return sum;
     }
     
 
@@ -399,49 +347,6 @@ public abstract class Heuristic implements Comparator<State> {
 		return minimumDistance;
     }
     
-
-    /**
-	 * Get an agent coordinates, its assigned box coordinates, and a method as inputs
-     * Calculates minimum distance from the given Agent to the coordinate of the Box with the same assigned Goal using the input method
-     * @param agent_coordinates
-     * @param box_coordinates
-	 * @param method
-	 * @return distance from Agent to assigned goal
-	 */
-	private double getMinimumDistanceFromAgentToAssignedBoxAtState(Coordinate agent_coordinates, Coordinate box_coordinates, String method) {
-		double distance = 0; // Value by default for an Agent without any Goal 
-        
-		//For each box whose goal match with the agent's goal, calculate the distance according to given heuristic choice
-			if (method.equals("manhattan")){
-                // Check if goal match
-                distance = manhattan(agent_coordinates, box_coordinates);
-                return distance;
-            }
-
-            if (method.equals("euclidian")){
-                // Check if goal match
-                distance = euclidian(agent_coordinates, box_coordinates);
-                return distance;            
-            }
-
-            if (method.equals("pythagorean")){
-                // Check if goal match
-                distance = pythagorean(agent_coordinates, box_coordinates);
-                return distance;
-            }
-
-            if (method.equals("pullDistance")){
-                // Check if goal match
-                distance = pullDistance(agent_coordinates, box_coordinates);
-                return distance;
-            }
-
-            /* 
-                We can add other methods here    
-                */
-			return distance;
-    }
-
 
     /**
 	 * Get an agent, its coordinate and a method as inputs

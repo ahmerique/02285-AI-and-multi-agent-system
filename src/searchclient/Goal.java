@@ -1,5 +1,9 @@
 package src.searchclient;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+
 public class Goal extends BoardObject {
 
 
@@ -48,6 +52,16 @@ public class Goal extends BoardObject {
     public void setAttachedBox(Box attachedBox) {
         this.attachedBox = attachedBox;
     }
+
+
+    static public void insertInOrderedGoalList(ArrayList<Goal> list, Goal element) {
+        int index = Collections.binarySearch(list, element, Comparator.comparing(Goal::getPriority));
+        if (index < 0) {
+            index = -index - 1;
+        }
+        list.add(index, element);
+    }
+
 
 
     @Override

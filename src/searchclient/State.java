@@ -27,9 +27,20 @@ public class State {
 
     // From preprocessing
     public static HashMap<Coordinate, Integer> degreeMap = new HashMap<>();
+
     public static ArrayList<ArrayList<Coordinate>> busyDeadEndList = new ArrayList<>();
     public static ArrayList<ArrayList<Coordinate>> emptyDeadEndList = new ArrayList<>();
     public static ArrayList<ArrayList<Coordinate>> corridorList = new ArrayList<>();
+
+    public static HashMap<Coordinate, Integer> corridorIndexByCoordinate = new HashMap<>();
+    public static HashMap<Coordinate, Integer> busyDeadEndIndexByCoordinate = new HashMap<>();
+
+    public static ArrayList<ArrayList<String>> busyDeadEndOccupancy = new ArrayList<>();
+    public static ArrayList<ArrayList<String>> corridorOccupancy = new ArrayList<>();
+
+    public final static int MAX_GOAL_PRIORITY = 1000; // for test 9;
+    public final static int NORMAL_GOAL_PRIORITY = 100; // for test 1
+    public final static int LOW_GOAL_PRIORITY = 0;
 
     /**
      * LOCAL ATTRIBUTES
@@ -41,6 +52,7 @@ public class State {
     // TODO On peut peut être remplacer par de vraies objet car ils ne seront pas copiés, uniquement référencés.
     public String agentId;
     public String boxId;
+    public Coordinate destination;
     //
 
     private State parent;
@@ -59,17 +71,57 @@ public class State {
         this.parent = parent;
         this.agentId = parent.agentId;
         this.boxId = parent.boxId;
+        this.destination = parent.destination;
         this.g = parent.g() + 1;
 
         this.localCoordinateById = new HashMap<>();
         this.localIdByCoordinate = new HashMap<>();
     }
 
-    // firstStateCreator
+    // firstStateCreator move box to goal
     public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId, String boxId) throws AssertionError {
 
         this.agentId = agentId;
         this.boxId = boxId;
+        this.g = 0;
+
+        // copy hashmap
+        this.localCoordinateById = new HashMap<>();
+        this.localIdByCoordinate = new HashMap<>();
+        for (Coordinate key : localIdByCoordinate.keySet()) {
+            this.localIdByCoordinate.put(key, localIdByCoordinate.get(key));
+        }
+        for (String key : localCoordinateById.keySet()) {
+            this.localCoordinateById.put(key, localCoordinateById.get(key));
+        }
+
+        if (agentId == null) throw new AssertionError("MUST have an agentId");
+    }
+
+    // firstStateCreator move agent to destination
+    public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId, Coordinate destination) throws AssertionError {
+
+        this.agentId = agentId;
+        this.destination = destination;
+        this.g = 0;
+
+        // copy hashmap
+        this.localCoordinateById = new HashMap<>();
+        this.localIdByCoordinate = new HashMap<>();
+        for (Coordinate key : localIdByCoordinate.keySet()) {
+            this.localIdByCoordinate.put(key, localIdByCoordinate.get(key));
+        }
+        for (String key : localCoordinateById.keySet()) {
+            this.localCoordinateById.put(key, localCoordinateById.get(key));
+        }
+
+        if (agentId == null) throw new AssertionError("MUST have an agentId");
+    }
+
+    // firstStateCreator move agent to free cell
+    public State(HashMap<String, Coordinate> localCoordinateById, HashMap<Coordinate, String> localIdByCoordinate, String agentId) throws AssertionError {
+
+        this.agentId = agentId;
         this.g = 0;
 
         // copy hashmap
@@ -121,8 +173,14 @@ public class State {
 
     //TODO : Readapt this function to actual use case
     public boolean isSubGoalState() {
-        Box boxObject = (Box) realBoardObjectsById.get(boxId);
-        return boxObject.getBoxGoal().getCoordinate().equals(localCoordinateById.get(boxId));
+        if (boxId != null) {
+            Box boxObject = (Box) realBoardObjectsById.get(boxId);
+            return (boxObject.getBoxGoal().getCoordinate().equals(localCoordinateById.get(boxId)));
+        } else if (destination != null) {
+            return destination.equals(localCoordinateById.get(agentId));
+        } else {
+            return degreeMap.get(localCoordinateById.get(agentId)) == NORMAL_GOAL_PRIORITY;
+        }
     }
 
     //Method to set a new object (agent:0, box:1, goal:2) in the State
@@ -149,7 +207,7 @@ public class State {
                 return newBox;
 
             case "GOAL"://Goal
-                finalId = 'g' + generateUniqueId(id);
+                finalId = 'g' + generateUniqueId(id); // TODO check here is it works ------------------------------------------------------------
                 Goal newGoal = new Goal(finalId, color, coord, id);
                 State.goalWithCoordinate.put(newGoal, coord);
                 State.goalByCoordinate.put(coord, newGoal);
@@ -166,11 +224,11 @@ public class State {
         int iterator = 0;
 
         //Process until id is new
-        while (realBoardObjectsById.containsKey(stringId + Integer.toString(iterator))) {
+        while (realBoardObjectsById.containsKey(stringId + iterator)) {
             iterator += 1;
         }
 
-        return (stringId + Integer.toString(iterator));
+        return (stringId + iterator);
     }
 
     // TODO update map from agent action
@@ -180,13 +238,16 @@ public class State {
 
         for (int i = 0; i < latestStateArray.length; i++) {
             if (latestServerOutput[i].equals("true")) {
-                if (latestStateArray[i] != null) {
+                if (latestStateArray[i] != null && latestStateArray[i].action != null) {
                     Command c = latestStateArray[i].action;
                     String agentId = latestStateArray[i].agentId;
                     Coordinate currentAgentCoordinate = realCoordinateById.get(agentId);
                     Coordinate nextAgentCoordinate = new Coordinate(
                             currentAgentCoordinate.getRow() + dirToRowChange(c.dir1),
                             currentAgentCoordinate.getColumn() + dirToColChange(c.dir1));
+
+                    // Check deadEnd and modify occupancy
+                    checkDeadEnd(agentId, currentAgentCoordinate, nextAgentCoordinate);
 
                     if (c.actionType == Command.Type.Move) {
                         moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
@@ -217,6 +278,25 @@ public class State {
 
         }
         return hasError;
+    }
+
+    public static void checkDeadEnd(String agentId, Coordinate currentAgentCoor, Coordinate nextCoor){
+
+        // Move In
+        if (State.busyDeadEndIndexByCoordinate.containsKey(nextCoor)) {
+            Integer index = State.busyDeadEndIndexByCoordinate.get(nextCoor);
+            if (State.busyDeadEndOccupancy.get(index).isEmpty() || !State.busyDeadEndOccupancy.get(index).contains(agentId)) {
+                State.busyDeadEndOccupancy.get(index).add(agentId);
+            }
+        }
+
+        // Move Out
+        else if (State.busyDeadEndIndexByCoordinate.containsKey(currentAgentCoor)) { // if previous state was in dead end and next one isn't
+            Integer index = State.busyDeadEndIndexByCoordinate.get(currentAgentCoor);
+            State.busyDeadEndOccupancy.get(index).remove(agentId);
+            Agent agent = (Agent) State.realBoardObjectsById.get(agentId);
+            if(agent.moveToCornerCaseGoal) agent.moveToCornerCaseGoal = false;
+        }
     }
 
     /**
@@ -278,11 +358,6 @@ public class State {
         return expandedStates;
     }
 
-    /**
-     * TODO Add color management
-     * If not the same color return null. So it won't be able to move that way.
-     * Might not be necessary if we are in a relaxed problem
-     */
     private String boxAt(Coordinate expectedBoxCoordinate, String agentcolor) {
         String objectId = localIdByCoordinate.get(expectedBoxCoordinate);
         if (objectId != null && 'A' <= objectId.charAt(0) && objectId.charAt(0) <= 'Z') {
@@ -292,7 +367,7 @@ public class State {
         }
         return null;
     }
-    
+
 
     private boolean cellIsFree(Coordinate coordinate) {
         return State.wallByCoordinate.get(coordinate) == null
@@ -300,7 +375,7 @@ public class State {
     }
 
     public static boolean cellIsFreeFromWall(Coordinate coordinate) {
-        return State.wallByCoordinate.get(coordinate) == null 
+        return State.wallByCoordinate.get(coordinate) == null
                 && coordinate.getColumn() <= MAX_COL
                 && coordinate.getRow() <= MAX_ROW;
     }
@@ -334,10 +409,10 @@ public class State {
             if (realBoardObjectsById.get(objectId).getColor().equals(agentcolor)) {
                 return objectId;
             }
-        } 
+        }
         return null;
     }
-    
+
 
 
     public ArrayList<State> extractPlan() {
@@ -391,7 +466,11 @@ public class State {
             return false;
         if (!(this.localIdByCoordinate.equals(other.localIdByCoordinate)))
             return false;
-        if (!this.boxId.equals(other.boxId) || !this.agentId.equals(other.agentId))
+        if (!this.agentId.equals(other.agentId))
+            return false;
+        if (this.boxId != null && !this.boxId.equals(other.boxId))
+            return false;
+        if (this.destination != null && !this.destination.equals(other.destination))
             return false;
 
         return true;
@@ -424,6 +503,5 @@ public class State {
         }
         return s.toString();
     }
-
 
 }

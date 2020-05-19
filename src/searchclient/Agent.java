@@ -1,6 +1,8 @@
 package src.searchclient;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.PriorityQueue;
 
 public class Agent extends BoardObject {
@@ -8,6 +10,9 @@ public class Agent extends BoardObject {
     private int counter = 0;
 
     private Goal currentGoal;
+    public Coordinate destinationGoal;
+    public Boolean moveToCornerCaseGoal = false;
+    public Boolean isWaiting = false;
 
     /**
      * Instantiate a new Agent
@@ -28,17 +33,27 @@ public class Agent extends BoardObject {
         this.currentGoal = currentGoal;
     }
 
+    public void requeueCurrentGoal(ArrayList<Goal> goalQueue) {
+        Goal.insertInOrderedGoalList(goalQueue, this.currentGoal);
+        this.currentGoal = null;
+    }
+
     public void updateGoal(ArrayList<Goal> goalQueue) {
-        if (currentGoal == null) {
+        if (!isWaiting && currentGoal == null) {
             for (Goal tempGoal : goalQueue) {
                 if (tempGoal.getColor().equals(this.getColor())) {
                     currentGoal = tempGoal;
+                    goalQueue.remove(currentGoal);
                     break;
                 }
             }
-            goalQueue.remove(currentGoal);
+            // TODO check if there is a corner case available
+            // TODO put the agent back to their goal position
+            // if no goal left for him
+            moveToCornerCaseGoal = currentGoal == null;
         } else {
             // TODO when there is a conflict for instance
         }
     }
+
 }

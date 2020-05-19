@@ -11,7 +11,7 @@ public class Agent extends BoardObject {
 
     private Goal currentGoal;
     public Coordinate destinationGoal;
-    public Boolean moveToCornerCaseGoal;
+    public Boolean moveToCornerCaseGoal = false;
     public Boolean isWaiting = false;
 
     /**
@@ -39,15 +39,14 @@ public class Agent extends BoardObject {
     }
 
     public void updateGoal(ArrayList<Goal> goalQueue) {
-        if (currentGoal == null) {
+        if (!isWaiting && currentGoal == null) {
             for (Goal tempGoal : goalQueue) {
                 if (tempGoal.getColor().equals(this.getColor())) {
                     currentGoal = tempGoal;
+                    goalQueue.remove(currentGoal);
                     break;
                 }
             }
-
-            goalQueue.remove(currentGoal);
         } else {
             // TODO when there is a conflict for instance
         }

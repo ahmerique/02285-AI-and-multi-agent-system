@@ -237,6 +237,9 @@ public class State {
                             currentAgentCoordinate.getRow() + dirToRowChange(c.dir1),
                             currentAgentCoordinate.getColumn() + dirToColChange(c.dir1));
 
+                    // Check deadEnd and modify occupancy
+                    checkDeadEnd(agentId, currentAgentCoordinate, nextAgentCoordinate);
+
                     if (c.actionType == Command.Type.Move) {
                         moveRealObject(agentId, currentAgentCoordinate, nextAgentCoordinate);
                     } else if (c.actionType == Command.Type.Push) { // Agent takes the place of the box and box move toward dir2
@@ -266,6 +269,25 @@ public class State {
 
         }
         return hasError;
+    }
+
+    public static void checkDeadEnd(String agentId, Coordinate currentAgentCoor, Coordinate nextCoor){
+
+        // Move In
+        if (State.busyDeadEndIndexByCoordinate.containsKey(nextCoor)) {
+            Integer index = State.busyDeadEndIndexByCoordinate.get(nextCoor);
+            if (State.busyDeadEndOccupancy.get(index).isEmpty() || !State.busyDeadEndOccupancy.get(index).contains(agentId)) {
+                State.busyDeadEndOccupancy.get(index).add(agentId);
+            }
+        }
+
+        // Move Out
+        else if (State.busyDeadEndIndexByCoordinate.containsKey(currentAgentCoor)) { // if previous state was in dead end and next one isn't
+            Integer index = State.busyDeadEndIndexByCoordinate.get(currentAgentCoor);
+            State.busyDeadEndOccupancy.get(index).remove(agentId);
+            Agent agent = (Agent) State.realBoardObjectsById.get(agentId);
+            if(agent.moveToCornerCaseGoal) agent.moveToCornerCaseGoal = false;
+        }
     }
 
     /**

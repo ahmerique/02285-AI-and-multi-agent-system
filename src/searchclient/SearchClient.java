@@ -89,7 +89,7 @@ public class SearchClient {
                         // TODO maybe if change plan to help someone, should do something with it
                         ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
                         minLength = plan.size();
-                    } else {
+                    } else if (!agent.isWaiting) {
                         System.err.println("Solution could not be found");
                     }
                 }
@@ -522,8 +522,6 @@ public class SearchClient {
         }
 
         System.err.println("Finished preprocessing of the map");
-        System.err.println(State.busyDeadEndOccupancy);
-
 
         return goalPriorityQueue;
     }
@@ -636,7 +634,6 @@ public class SearchClient {
                     this.latestStateArray[agentNumber] = next;
                     planByAgent.get(agent).remove(0);
                     actionString = "NoOp";
-                    System.err.println(agent.getId() + " has null move");
 
                 } else if (checkNextStep(next)) { // check possible issues corridor/deadEnd TODO for now if not valid move put agent to wait
                     this.latestStateArray[agentNumber] = next;
@@ -648,6 +645,7 @@ public class SearchClient {
                     System.err.println(agent.getId() + " is waiting");
                     actionString = "NoOp";
                 }
+
             } else { // If plan has been fully executed
                 //System.err.println("Agent " + agent.getId() + " reached its goal " + agent.getCurrentGoal());
                 noAct++;
@@ -664,11 +662,9 @@ public class SearchClient {
             jointActionList[agentNumber] = actionString;
         }
 
-        for (Agent agent : agentList) {
-            System.err.println(agent.moveToCornerCaseGoal);
-        }
 
         String jointAction = String.join(";", jointActionList);
+        System.err.println("Command: " + jointAction);
 
 
         if (noAct == agentList.size()) return false;

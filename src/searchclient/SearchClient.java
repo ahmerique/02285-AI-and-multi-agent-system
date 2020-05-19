@@ -33,10 +33,10 @@ public class SearchClient {
         //Match Boxes and Goals
         matchGoalsAndBoxes();
 
+        System.err.println("Done initializing");
 
         //----------- BEGIN MAIN LOOP -------------
 
-        //  Example of working algorithm
         boolean finished = false;
         while (!finished) {
 
@@ -96,16 +96,12 @@ public class SearchClient {
                 }
             }
 
-
-            // Make sure that goals finishes in the good order
-
-
             // TODO keep track of previous path of agent. If there is a conflict, trackback  until no conflict or do something else
 
             // Execute as long as possible
             boolean cont = true;
             while (cont) {
-                //agentListByPriority.sort(AgentGoalComparator);
+                // TODO When a box is removed from it's goal it has to go back into the queue list
                 cont = sendNextStepToServer(serverMessages);
                 boolean status = State.updateStaticMap(latestStateArray, latestServerOutput);
                 /*
@@ -258,7 +254,6 @@ public class SearchClient {
         agentList.sort(Comparator.comparingInt(a -> Integer.parseInt(a.getId())));
         //System.err.println("----------- MAX_ROW = " + State.MAX_ROW);
         //System.err.println("----------- MAX_COL = " + State.MAX_COL);
-        System.err.println("Done initializing");
     }
 
     private ArrayList<Goal> preprocessMap() {
@@ -365,7 +360,6 @@ public class SearchClient {
         }
 
         // link corridor to corner, add extremities, fill corridorList
-
         while (!corridorCaseSet.isEmpty()) {
 
             Coordinate corridor = corridorCaseSet.iterator().next();
@@ -489,10 +483,20 @@ public class SearchClient {
         */
 
         // Goal ordering
-        ArrayList<Goal> goalPriorityQueue = new ArrayList<>(State.goalWithCoordinate.keySet());
-        for (Goal tempGoal : goalPriorityQueue) {
+
+        Goal myGoal = State.goalByCoordinate.get(new Coordinate(30,3));
+
+        ArrayList<Goal> goalPriorityQueue = new ArrayList<>();
+        for (Goal tempGoal : State.goalWithCoordinate.keySet()) {
             tempGoal.setPriority(State.degreeMap.get(tempGoal.getCoordinate()));
+            // check if box on goal
+            String objectId = State.realIdByCoordinate.get(tempGoal.getCoordinate());
+            if( objectId == null || objectId.charAt(0) != tempGoal.getLetter()){
+                goalPriorityQueue.add(tempGoal);
+            }
         }
+
+
         goalPriorityQueue.sort(goalComparator);
 
         // Create accessor and occupancy for corridor and deadEnd
@@ -521,14 +525,11 @@ public class SearchClient {
             }
         }
 
-        System.err.println("Finished preprocessing of the map");
-
         return goalPriorityQueue;
     }
 
     /**
 	 * Assigns to each box the best goal, depending on the chosen distance metric
-	 * @param method
 	 * @return void
 	 */
     private void matchGoalsAndBoxes() {
@@ -619,7 +620,7 @@ public class SearchClient {
             firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId());
         }
 
-        //System.err.println(firstState);
+        System.err.println(firstState);
 
         strategy.addToFrontier(firstState);
 

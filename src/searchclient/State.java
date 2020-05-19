@@ -7,6 +7,8 @@ import static src.searchclient.Command.dirToRowChange;
 
 public class State {
 
+    public static Integer objectCounter = 0;
+
     /**
      * STATIC ATTRIBUTES
      **/
@@ -207,7 +209,7 @@ public class State {
                 return newBox;
 
             case "GOAL"://Goal
-                finalId = 'g' + generateUniqueId(id); // TODO check here is it works ------------------------------------------------------------
+                finalId = 'g' + generateUniqueId(id);
                 Goal newGoal = new Goal(finalId, color, coord, id);
                 State.goalWithCoordinate.put(newGoal, coord);
                 State.goalByCoordinate.put(coord, newGoal);
@@ -220,15 +222,16 @@ public class State {
     }
 
     private static String generateUniqueId(char id) {
+        objectCounter++;
         String stringId = Character.toString(id);
-        int iterator = 0;
+/*        int iterator = 0;
 
         //Process until id is new
         while (realBoardObjectsById.containsKey(stringId + iterator)) {
             iterator += 1;
         }
-
-        return (stringId + iterator);
+*/
+        return (stringId + objectCounter);
     }
 
     // TODO update map from agent action
@@ -368,7 +371,6 @@ public class State {
         return null;
     }
 
-
     private boolean cellIsFree(Coordinate coordinate) {
         return State.wallByCoordinate.get(coordinate) == null
                 && localIdByCoordinate.get(coordinate) == null;
@@ -412,8 +414,6 @@ public class State {
         }
         return null;
     }
-
-
 
     public ArrayList<State> extractPlan() {
         ArrayList<State> plan = new ArrayList<>();

@@ -11,7 +11,9 @@ import static java.lang.Character.toLowerCase;
 // TODO UPDATE WITH STATE CHANGES
 public class SearchClient {
     public State initialState;
-    public ArrayList<Goal> goalQueue;
+    public ArrayList<Goal> highGoalQueue = new ArrayList<>();
+    public ArrayList<Goal> normalGoalQueue = new ArrayList<>();
+    public ArrayList<Goal> lowGoalQueue = new ArrayList<>();
     public ArrayList<Agent> agentList = new ArrayList<>();
     public ArrayList<Agent> agentListByPriority = new ArrayList<>();
     public HashMap<Agent, ArrayList<State>> planByAgent = new HashMap<>();
@@ -28,7 +30,7 @@ public class SearchClient {
 
         // Preprocess data
         System.err.println("Begin preprocessing of the map");
-        goalQueue = preprocessMap();
+        preprocessMap();
 
         //Match Boxes and Goals
         matchGoalsAndBoxes();
@@ -41,7 +43,7 @@ public class SearchClient {
         while (!finished) {
 
             for (Agent agent : agentList) {
-                agent.updateGoal(goalQueue);
+                updateGoal(agent);
             }
 
             // Check if all goals priority are inferior to the first element of goalQueue (For instance if
@@ -49,10 +51,19 @@ public class SearchClient {
             // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
             for (Agent agent : agentList) {
                 if (!agent.isWaiting && agent.getCurrentGoal() != null) {
-                    if (agent.getCurrentGoal().getPriority() != State.NORMAL_GOAL_PRIORITY
-                            && !goalQueue.isEmpty()
-                            && agent.getCurrentGoal().getPriority() < goalQueue.get(0).getPriority()) {
-                        agent.requeueCurrentGoal(goalQueue);
+
+                    // High priority goals has to be finished in order
+                    if (agent.getCurrentGoal().getPriority() > State.NORMAL_GOAL_PRIORITY
+                            && !highGoalQueue.isEmpty()
+                            && agent.getCurrentGoal().getPriority() < highGoalQueue.get(0).getPriority()) {
+                        agent.requeueCurrentGoal(highGoalQueue);
+                    }
+
+                    // Low priority has to wait for all the other before beginning
+                    if (agent.getCurrentGoal().getPriority() == State.LOW_GOAL_PRIORITY
+                            && !normalGoalQueue.isEmpty()
+                            && !highGoalQueue.isEmpty()) {
+                        agent.requeueCurrentGoal(lowGoalQueue);
                     }
                 }
             }
@@ -153,7 +164,7 @@ public class SearchClient {
                 }
             }
 
-            if (agentsDone && goalQueue.isEmpty()) {
+            if (agentsDone && highGoalQueue.isEmpty() && normalGoalQueue.isEmpty() && lowGoalQueue.isEmpty()) {
                 finished = true;
             }
         }
@@ -256,7 +267,7 @@ public class SearchClient {
         //System.err.println("----------- MAX_COL = " + State.MAX_COL);
     }
 
-    private ArrayList<Goal> preprocessMap() {
+    private void preprocessMap() {
 
         HashSet<Coordinate> deadEndCaseSet = new HashSet<>();
         HashSet<Coordinate> corridorCaseSet = new HashSet<>();
@@ -483,21 +494,22 @@ public class SearchClient {
         */
 
         // Goal ordering
-
-        Goal myGoal = State.goalByCoordinate.get(new Coordinate(30,3));
-
-        ArrayList<Goal> goalPriorityQueue = new ArrayList<>();
         for (Goal tempGoal : State.goalWithCoordinate.keySet()) {
             tempGoal.setPriority(State.degreeMap.get(tempGoal.getCoordinate()));
             // check if box on goal
             String objectId = State.realIdByCoordinate.get(tempGoal.getCoordinate());
-            if( objectId == null || objectId.charAt(0) != tempGoal.getLetter()){
-                goalPriorityQueue.add(tempGoal);
+            if (objectId == null || objectId.charAt(0) != tempGoal.getLetter()) {
+                if (tempGoal.getPriority() == State.NORMAL_GOAL_PRIORITY) {
+                    normalGoalQueue.add(tempGoal);
+                } else if (tempGoal.getPriority() == State.LOW_GOAL_PRIORITY) {
+                    lowGoalQueue.add(tempGoal);
+                } else {
+                    highGoalQueue.add(tempGoal);
+                }
             }
         }
 
-
-        goalPriorityQueue.sort(goalComparator);
+        highGoalQueue.sort(goalComparator);
 
         // Create accessor and occupancy for corridor and deadEnd
         for (int i = 0; i < State.corridorList.size(); i++) {
@@ -524,14 +536,11 @@ public class SearchClient {
                 State.busyDeadEndOccupancy.get(agentDeadEnd).add(agent.getId());
             }
         }
-
-        return goalPriorityQueue;
     }
 
     /**
-	 * Assigns to each box the best goal, depending on the chosen distance metric
-	 * @return void
-	 */
+     * Assigns to each box the best goal, depending on the chosen distance metric
+     */
     private void matchGoalsAndBoxes() {
 
         Goal[] setGoals = State.goalWithCoordinate.keySet().toArray(new Goal[State.goalWithCoordinate.size()]);
@@ -543,10 +552,9 @@ public class SearchClient {
         double score;
 
         Iterator itr = setBoxes.iterator();
-        while (itr.hasNext())
-        {
-            BoardObject b = (BoardObject)itr.next();
-            if (!(b instanceof Box)){
+        while (itr.hasNext()) {
+            BoardObject b = (BoardObject) itr.next();
+            if (!(b instanceof Box)) {
                 itr.remove();
             }
         }
@@ -584,8 +592,8 @@ public class SearchClient {
         Box box;
         Goal goal;
 
-        for(int k = 0; k < jobs.length; k++) {
-            if(jobs[k] != -1){
+        for (int k = 0; k < jobs.length; k++) {
+            if (jobs[k] != -1) {
                 box = ((Box) setBoxes.get(k));
                 goal = setGoals[jobs[k]];
                 box.setBoxGoal(goal);
@@ -604,6 +612,49 @@ public class SearchClient {
         int moveToCorner1 = a1.moveToCornerCaseGoal ? State.MAX_GOAL_PRIORITY + 1 : 0;
         return priority2 + moveToCorner2 - priority1 - moveToCorner1;
     };
+
+    public void updateGoal(Agent agent) {
+        if (!agent.isWaiting && agent.getCurrentGoal() == null) {
+            // Get high goal
+            for (Goal tempGoal : highGoalQueue) {
+                if (tempGoal.getColor().equals(agent.getColor())) {
+                    agent.setCurrentGoal(tempGoal);
+                    highGoalQueue.remove(tempGoal);
+                    break;
+                }
+            }
+
+            // or get normal goal // TODO get the closest goal of agent ---------------------------------------------------------------------------------------------------------------------
+            if (agent.getCurrentGoal() == null) {
+                for (Goal tempGoal : normalGoalQueue) {
+                    if (tempGoal.getColor().equals(agent.getColor())) {
+                        agent.setCurrentGoal(tempGoal);
+                        normalGoalQueue.remove(tempGoal);
+                        break;
+                    }
+                }
+            }
+
+            // or get low goal queue
+            if (agent.getCurrentGoal() == null) {
+                for (Goal tempGoal : lowGoalQueue) {
+                    if (tempGoal.getColor().equals(agent.getColor())) {
+                        agent.setCurrentGoal(tempGoal);
+                        lowGoalQueue.remove(tempGoal);
+                        break;
+                    }
+                }
+            }
+
+            // TODO check if there is a corner case available
+            // TODO put the agent back to their goal position
+            // if no goal left for him
+            agent.moveToCornerCaseGoal = agent.getCurrentGoal() == null;
+        } else {
+            // TODO when there is a conflict for instance
+        }
+    }
+
 
     public ArrayList<State> Search(Strategy strategy, Agent agent, problemType typeOfProblem) {
 

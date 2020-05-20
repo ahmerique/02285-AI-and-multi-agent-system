@@ -37,23 +37,4 @@ public class Agent extends BoardObject {
         Goal.insertInOrderedGoalList(goalQueue, this.currentGoal);
         this.currentGoal = null;
     }
-
-    public void updateGoal(ArrayList<Goal> goalQueue) {
-        if (!isWaiting && currentGoal == null) {
-            for (Goal tempGoal : goalQueue) {
-                if (tempGoal.getColor().equals(this.getColor())) {
-                    currentGoal = tempGoal;
-                    goalQueue.remove(currentGoal);
-                    break;
-                }
-            }
-            // TODO check if there is a corner case available
-            // TODO put the agent back to their goal position
-            // if no goal left for him
-            moveToCornerCaseGoal = currentGoal == null;
-        } else {
-            // TODO when there is a conflict for instance
-        }
-    }
-
 }

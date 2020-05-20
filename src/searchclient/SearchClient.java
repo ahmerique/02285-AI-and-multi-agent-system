@@ -46,11 +46,8 @@ public class SearchClient {
         boolean finished = false;
         while (!finished) {
 
-            for (Agent agent : agentList) {
-                updateGoal(agent);
-            }
-
-
+            //Bidding on goals
+            matchAgentsAndGoals();
 
             // Check if all goals priority are inferior to the first element of goalQueue (For instance if
             // only one agent can fill the first case of a deadEnd)
@@ -566,7 +563,7 @@ public class SearchClient {
         Coordinate coord2;
         double score;
 
-        Iterator itr = setBoxes.iterator();
+        Iterator<BoardObject> itr = setBoxes.iterator();
         while (itr.hasNext()) {
             BoardObject b = (BoardObject) itr.next();
             if (!(b instanceof Box)) {
@@ -622,11 +619,181 @@ public class SearchClient {
                 box = ((Box) setBoxes.get(k));
                 goal = setGoals[jobs[k]];
                 box.setBoxGoal(goal);
+                box.setBoxGoalDistance(scores[k][jobs[k]]);
                 goal.setAttachedBox(box);
                 //System.err.println("----------- Pair = " + box.getId() + " with " + goal.getId()+ " (" + scores[k][jobs[k]] + ")");
             }
         }
 
+    }
+
+    /**
+     * Gives a goal to every agent, by minimizing the pullDistance total cost and priorizing high priority goals
+     */
+    private void matchAgentsAndGoals() {
+
+        int i = 0;
+        int j = 0;
+        Coordinate coord1;
+        Coordinate coord2;
+        double score;
+        int totalGoals = highGoalQueue.size() + normalGoalQueue.size() + lowGoalQueue.size();
+        double[][] scores = new double[totalGoals][agentList.size()];
+
+        if(totalGoals > 0) {
+            for (Agent agent : agentList) {
+                String colorToMatch = agent.getColor();
+
+                for (Goal tempGoal : highGoalQueue) {
+
+                    if (tempGoal.getColor() == colorToMatch) {
+                        Box boxOfGoal = tempGoal.getAttachedBox();
+                        coord1 = State.realCoordinateById.get(boxOfGoal.getId());
+                        coord2 = State.realCoordinateById.get(agent.getId());
+                        //Original distance from agent to box position + original distance from box to its goal
+                        double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
+                        scores[j][i] = metric;
+
+                    } else {
+                        scores[j][i] = 10000;
+                    }
+
+                    j += 1;
+                }
+
+                for (Goal tempGoal : normalGoalQueue) {
+
+                    if (tempGoal.getColor() == colorToMatch) {
+                        Box boxOfGoal = tempGoal.getAttachedBox();
+                        coord1 = State.realCoordinateById.get(boxOfGoal.getId());
+                        coord2 = State.realCoordinateById.get(agent.getId());
+                        //Original distance from agent to box position + original distance from box to its goal + 2500
+                        double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
+                        scores[j][i] = metric + 2500;
+
+                    } else {
+                        scores[j][i] = 10000;
+                    }
+
+                    j += 1;
+                }
+
+                for (Goal tempGoal : lowGoalQueue) {
+
+                    if (tempGoal.getColor() == colorToMatch) {
+                        Box boxOfGoal = tempGoal.getAttachedBox();
+                        coord1 = State.realCoordinateById.get(boxOfGoal.getId());
+                        coord2 = State.realCoordinateById.get(agent.getId());
+                        //Original distance from agent to box position + original distance from box to its goal + 5000
+                        double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
+                        scores[j][i] = metric + 5000;
+
+                    } else {
+                        scores[j][i] = 10000;
+                    }
+
+                    j += 1;
+                }
+
+                i += 1;
+                j = 0;
+            }
+
+            HungarianAlgorithm ha = new HungarianAlgorithm(scores);
+            int[] jobs = ha.execute();
+            Goal bestGoal;
+            Agent agent;
+
+            //System.err.println("----- Len of jobs = " + jobs.length);
+            //System.err.println("----- Jobs = " + Arrays.toString(jobs));
+
+            /*
+            for(int x = 0; x < totalGoals; x++){
+                for(int y = 0; y < agentList.size(); y++){
+                    System.err.println(scores[x][y]);
+                }
+            }
+            
+
+            System.err.println("---- highGoalQueue.size() = " + highGoalQueue.size());
+            System.err.println("---- normalGoalQueue.size() = " + normalGoalQueue.size());
+            System.err.println("---- lowGoalQueue.size() = " + lowGoalQueue.size());
+
+            for(Goal goal : highGoalQueue){
+                System.err.println("---- highGoal = " + goal.getId());
+            }
+            for(Goal goal : normalGoalQueue){
+                System.err.println("---- normalGoal = " + goal.getId());
+            }
+            for(Goal goal : lowGoalQueue){
+                System.err.println("---- lowGoal = " + goal.getId());
+            }
+            */
+
+            ArrayList<Goal> highGoalsToRemove = new ArrayList<Goal>();
+            ArrayList<Goal> normalGoalsToRemove = new ArrayList<Goal>();
+            ArrayList<Goal> lowGoalsToRemove = new ArrayList<Goal>();
+
+            for (int k = 0; k < jobs.length; k++) {
+
+                if (jobs[k] != -1) {
+                    agent = agentList.get(jobs[k]);
+
+                    if (scores[k][jobs[k]] < 7500) {
+
+                        if (scores[k][jobs[k]] < 2500) { //Agent has been assigned a high priority goal
+
+                            bestGoal = highGoalQueue.get(k);
+                            agent.setCurrentGoal(bestGoal);
+                            highGoalsToRemove.add(bestGoal);
+                        
+                        } else if (scores[k][jobs[k]] >= 2500 && scores[k][jobs[k]] < 5000) { //Agent has been assigned a normal priority goal
+
+                            bestGoal = normalGoalQueue.get(k - highGoalQueue.size());
+                            agent.setCurrentGoal(bestGoal);
+                            normalGoalsToRemove.add(bestGoal);
+                        
+                        } else if (scores[k][jobs[k]] >= 5000) { //Agent has been assigned a low priority goal
+
+                            bestGoal = lowGoalQueue.get(k - highGoalQueue.size() - normalGoalQueue.size());
+                            agent.setCurrentGoal(bestGoal);
+                            lowGoalsToRemove.add(bestGoal);
+
+                        }
+
+                        //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal.getId()+ " (" + scores[k][jobs[k]] + ")");
+                    
+                    } else if (scores[k][jobs[k]] >= 7500){
+
+                        //Agent has no goal or an impossible goal
+                        agent = agentList.get(jobs[k]);
+                        Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
+                        if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
+                            agent.destinationGoal = destinationGoal;
+                        }
+                    }
+                }
+            }
+
+            for(Goal goal : highGoalsToRemove){
+                highGoalQueue.remove(goal);
+            }
+            for(Goal goal : normalGoalsToRemove){
+                normalGoalQueue.remove(goal);
+            }
+            for(Goal goal : lowGoalsToRemove){
+                lowGoalQueue.remove(goal);
+            }
+
+
+        } else {
+            for (Agent agent : agentList){
+                Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
+                    if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
+                        agent.destinationGoal = destinationGoal;
+                    }
+            }
+        }
     }
 
     public static Comparator<Goal> goalComparator = (o1, o2) -> o2.getPriority() - o1.getPriority();
@@ -638,36 +805,40 @@ public class SearchClient {
         return priority2 + moveToCorner2 - priority1 - moveToCorner1;
     };
 
+    /* TO REMOVE IF GOAL BIDS WORK
     public void updateGoal(Agent agent) {
+        Goal bestGoal = null;
+
         if (!agent.isWaiting && agent.getCurrentGoal() == null) {
+
             // Get high goal
-            for (Goal tempGoal : highGoalQueue) {
-                if (tempGoal.getColor().equals(agent.getColor())) {
-                    agent.setCurrentGoal(tempGoal);
-                    highGoalQueue.remove(tempGoal);
-                    break;
-                }
+            bestGoal = findBestGoal(highGoalQueue, agent);
+
+            if(bestGoal != null){
+                agent.setCurrentGoal(bestGoal);
+                highGoalQueue.remove(bestGoal);
             }
 
             // or get normal goal // TODO get the closest goal of agent ---------------------------------------------------------------------------------------------------------------------
             if (agent.getCurrentGoal() == null) {
-                for (Goal tempGoal : normalGoalQueue) {
-                    if (tempGoal.getColor().equals(agent.getColor())) {
-                        agent.setCurrentGoal(tempGoal);
-                        normalGoalQueue.remove(tempGoal);
-                        break;
-                    }
+
+                bestGoal = findBestGoal(normalGoalQueue, agent);
+
+                if(bestGoal != null){
+                    agent.setCurrentGoal(bestGoal);
+                    normalGoalQueue.remove(bestGoal);
                 }
+                
             }
 
             // or get low goal queue
             if (agent.getCurrentGoal() == null) {
-                for (Goal tempGoal : lowGoalQueue) {
-                    if (tempGoal.getColor().equals(agent.getColor())) {
-                        agent.setCurrentGoal(tempGoal);
-                        lowGoalQueue.remove(tempGoal);
-                        break;
-                    }
+
+                bestGoal = findBestGoal(lowGoalQueue, agent);
+
+                if(bestGoal != null){
+                    agent.setCurrentGoal(bestGoal);
+                    lowGoalQueue.remove(bestGoal);
                 }
             }
 
@@ -686,6 +857,34 @@ public class SearchClient {
             // TODO when there is a conflict for instance
         }
     }
+
+    
+    public Goal findBestGoal(ArrayList<Goal> goalQueue, Agent agent) {
+
+        Goal bestGoal = null;
+        double bestMetric = 9998;
+
+        for (Goal tempGoal : goalQueue) {
+
+            if (tempGoal.getColor().equals(agent.getColor())) {
+                Box boxOfGoal = tempGoal.getAttachedBox();
+                Coordinate coord1 = State.realCoordinateById.get(boxOfGoal.getId());
+                Coordinate coord2 = State.realCoordinateById.get(agent.getId());
+                //Original distance from agent to box position + original distance from box to its goal
+                double metric = Heuristic.pullDistance(coord1, coord2) + boxOfGoal.getBoxGoalDistance();
+
+                System.err.println("----- Agent " + agent.getId() + " is analyzing goal " + tempGoal.getId() + " at distance " + metric);
+
+                if(metric < bestMetric) {
+                    bestGoal = tempGoal;
+                    bestMetric = metric;
+                }
+            }
+        }
+
+        return(bestGoal);
+    }
+    */
 
     public ArrayList<State> Search(Strategy strategy, Agent agent, problemType typeOfProblem) {
 

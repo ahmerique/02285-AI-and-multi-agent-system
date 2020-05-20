@@ -217,6 +217,81 @@ public abstract class Heuristic implements Comparator<State> {
         return minimumDistance;
     }
 
+    /**
+     * pullDistance, but taking into account boxes of color
+     *
+     * @param c1 coordinate 1
+     * @param c2 coordinate 2
+     * @param color color of object
+     * @return distance form position c1 to position c2 on the board
+     */
+    static public double pullDistance(Coordinate c1, Coordinate c2, String color) {
+
+        // Table with all possible directions of movements
+        Command.Dir[] directions = Command.Dir.values();
+
+        // Create a queue
+        Queue<Node_PullDist> q = new ArrayDeque<>();
+
+        // Enqueue first node = position of coordinate c1
+        Node_PullDist start = new Node_PullDist(c1, 0);
+        q.add(start);
+
+        // Set to contain all cells already visited
+        Set<Coordinate> visited = new HashSet<>();
+
+        // Add coordinates c1
+        visited.add(c1);
+
+        // Stop to run when queue is empty
+        while (!q.isEmpty()) {
+
+            // Pop front Node from queue and process it
+            Node_PullDist current = q.poll();
+            Coordinate current_cord = current.coord;
+            int current_level = current.number_actions;
+
+            // Return if c2 is reached
+            if (current_cord.equals(c2)) {
+                return (double) current_level;
+            }
+
+
+            // Check and recurr on all possible movements from recurrent cell
+            for (Command.Dir direction : directions) {
+
+                Coordinate next_coord = new Coordinate(current_cord.getRow(), current_cord.getColumn());
+
+                // Get next possible position coordinates
+                next_coord.setColumn(current_cord.getColumn() + Command.dirToColChange(direction));
+                next_coord.setRow(current_cord.getRow() + Command.dirToRowChange(direction));
+
+
+                // Check if next cell is Free of wall or not
+                if (State.cellIsFreeFromWall(next_coord) && State.cellIsFreeFromBox(next_coord, color)) {
+
+                    // Add cell Node
+                    Node_PullDist next = new Node_PullDist(next_coord, current.number_actions + 1);
+
+                    // Check if coordinate not visited yet
+                    if (!visited.contains(next_coord)) {
+
+                        // Push Node in Queue and add the coordinate to visited list
+                        q.add(next);
+                        visited.add(next_coord);
+                    }
+
+                }
+
+            }
+
+
+        }
+        // If coordinate c2 is not reachable from coordinate c1, return a high distance
+        double minimumDistance = 9999; // Initialize the minimum distance at a very high value
+        return minimumDistance;
+    }
+
 
     /**
      * Receives the state and the heuristic choice as parameters and calculates the minimum distance for each box and agent

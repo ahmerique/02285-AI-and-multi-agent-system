@@ -6,6 +6,7 @@ public class Box extends BoardObject {
     /**
      * Additional attributes
      */
+    private double boxGoalDistance;
     private Goal boxGoal;
     private boolean isOnGoal;
     private final char letter;
@@ -32,6 +33,14 @@ public class Box extends BoardObject {
 
     public void setBoxGoal(Goal boxGoal) {
         this.boxGoal = boxGoal;
+    }
+
+    public double getBoxGoalDistance() {
+        return boxGoalDistance;
+    }
+
+    public void setBoxGoalDistance(double boxGoalDistance) {
+        this.boxGoalDistance = boxGoalDistance;
     }
 
     public boolean isOnGoal() {

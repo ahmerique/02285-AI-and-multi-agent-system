@@ -383,6 +383,11 @@ public class State {
                 && coordinate.getRow() <= MAX_ROW;
     }
 
+    public static boolean cellIsFreeFromBox(Coordinate coordinate, String color) {
+        BoardObject object = realBoardObjectsById.get(realIdByCoordinate.get(coordinate));
+        return (!(object instanceof Box && object.getColor() != color));
+    }
+
     private State childState() {
         State copy = new State(this);
         for (Coordinate key : this.localIdByCoordinate.keySet()) {

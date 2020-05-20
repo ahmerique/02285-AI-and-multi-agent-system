@@ -19,6 +19,7 @@ public class State {
     public static HashMap<Goal, Coordinate> goalWithCoordinate = new HashMap<>();
     public static HashMap<Coordinate, Goal> goalByCoordinate = new HashMap<>();
     public static HashMap<Coordinate, Boolean> wallByCoordinate = new HashMap<>();
+    public static HashMap<String, Coordinate> agentGoalWithCoordinate = new HashMap<>();
     public static int MAX_ROW;
     public static int MAX_COL;
 

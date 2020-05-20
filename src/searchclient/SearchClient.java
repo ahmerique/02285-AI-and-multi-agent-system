@@ -255,9 +255,11 @@ public class SearchClient {
                             }
 
                             char chrGoal = line.charAt(j);
-                            //TODO remove if goals are added as Box objects parameters
                             if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal
                                 State.setNewStateObject(i, j, "GOAL", chrGoal, colors.get(Character.toString(chrGoal)));
+                            } else if ('0' <= chrGoal && chrGoal <= '9') { // AgentGoal
+                                State.agentGoalWithCoordinate.put(Character.toString(chrGoal),new Coordinate(i,j));
+                                //System.err.println("----------- Destination = " + Character.toString(chrGoal) + " to " + new Coordinate(i,j));
                             }
                         }
                         line = serverMessages.readLine();
@@ -581,6 +583,16 @@ public class SearchClient {
                     //System.err.println("----------- Pull Distance = " + object.getId() + " with " + goal.getId()+ " (" + (int)score + ")");
                     scores[j][i] = score;
                     //scores[j][i] = j;
+
+                    //If the box is on the goal, we consider it as the best box ; all remaining boxes are set with a distance of 9998
+                    if(score == 0 && j < (setBoxes.size() - 1)){
+                        for(int l = j + 1; l < setBoxes.size(); l++){
+                            scores[l][i] = 9998;
+                        }
+
+                        break;
+                    }
+
                 } else {
                     scores[j][i] = 10000;
                 }

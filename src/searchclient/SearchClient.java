@@ -26,6 +26,11 @@ public class SearchClient {
         System.err.println("Begin reading from server");
         readMapFromServer(serverMessages);
         latestStateArray = new State[agentList.size()];
+
+        for (int i = 0; i < latestStateArray.length; i++) {
+            latestStateArray[i] = new State(State.realCoordinateById, State.realIdByCoordinate, agentList.get(i).getId());
+        }
+
         latestServerOutput = new String[agentList.size()];
 
         // Preprocess data
@@ -649,12 +654,11 @@ public class SearchClient {
             // TODO check if there is a corner case available
             // TODO put the agent back to their goal position
             // if no goal left for him
-            agent.moveToCornerCaseGoal = agent.getCurrentGoal() == null;
+            //agent.moveToCornerCaseGoal = agent.getCurrentGoal() == null;
         } else {
             // TODO when there is a conflict for instance
         }
     }
-
 
     public ArrayList<State> Search(Strategy strategy, Agent agent, problemType typeOfProblem) {
 

@@ -13,6 +13,7 @@ public class Agent extends BoardObject {
     public Coordinate destinationGoal;
     public Boolean moveToCornerCaseGoal = false;
     public Boolean isWaiting = false;
+    public ArrayList<State> plan = new ArrayList<>();
 
     /**
      * Instantiate a new Agent

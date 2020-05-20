@@ -113,7 +113,10 @@ public class SearchClient {
                 }
             }
 
-            // TODO keep track of previous path of agent. If there is a conflict, trackback  until no conflict or do something else
+            // Keep track of previous path of agent. TODO If there is a conflict, trackback  until no conflict or do something else
+            for(Map.Entry<Agent,ArrayList<State>> pair : planByAgent.entrySet()){
+                pair.getKey().plan = pair.getValue();
+            }
 
             // Execute as long as possible
             boolean cont = true;

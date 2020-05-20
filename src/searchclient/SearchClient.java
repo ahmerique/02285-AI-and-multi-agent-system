@@ -51,6 +51,8 @@ public class SearchClient {
                 updateGoal(agent);
             }
 
+
+
             // Check if all goals priority are inferior to the first element of goalQueue (For instance if
             // only one agent can fill the first case of a deadEnd)
             // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
@@ -78,7 +80,7 @@ public class SearchClient {
 
             int minLength = 0;
             for (Agent agent : agentListByPriority) {
-                if (agent.getCurrentGoal() != null || agent.moveToCornerCaseGoal) {
+                if (agent.getCurrentGoal() != null || agent.moveToCornerCaseGoal || agent.destinationGoal != null) {
 
                     // Strategy choice
                     //ArrayList<State> plan = Search(new Strategy.StrategyBFS(), agent, problemType.COMPLETE);
@@ -163,11 +165,15 @@ public class SearchClient {
 
             boolean agentsDone = true;
             for (Agent a : agentList) {
-                if (a.getCurrentGoal() != null) {
+                Coordinate destinationGoal = State.agentGoalWithCoordinate.get(a.getId());
+                if (a.getCurrentGoal() != null
+                        || (destinationGoal != null && !State.realCoordinateById.get(a.getId()).equals(destinationGoal))) {
                     agentsDone = false;
                     break;
                 }
             }
+
+            //System.err.println("Agent Done" + agentsDone);
 
             if (agentsDone && highGoalQueue.isEmpty() && normalGoalQueue.isEmpty() && lowGoalQueue.isEmpty()) {
                 finished = true;
@@ -258,7 +264,7 @@ public class SearchClient {
                             if ('A' <= chrGoal && chrGoal <= 'Z') { // Goal
                                 State.setNewStateObject(i, j, "GOAL", chrGoal, colors.get(Character.toString(chrGoal)));
                             } else if ('0' <= chrGoal && chrGoal <= '9') { // AgentGoal
-                                State.agentGoalWithCoordinate.put(Character.toString(chrGoal),new Coordinate(i,j));
+                                State.agentGoalWithCoordinate.put(Character.toString(chrGoal), new Coordinate(i, j));
                                 //System.err.println("----------- Destination = " + Character.toString(chrGoal) + " to " + new Coordinate(i,j));
                             }
                         }
@@ -585,8 +591,8 @@ public class SearchClient {
                     //scores[j][i] = j;
 
                     //If the box is on the goal, we consider it as the best box ; all remaining boxes are set with a distance of 9998
-                    if(score == 0 && j < (setBoxes.size() - 1)){
-                        for(int l = j + 1; l < setBoxes.size(); l++){
+                    if (score == 0 && j < (setBoxes.size() - 1)) {
+                        for (int l = j + 1; l < setBoxes.size(); l++) {
                             scores[l][i] = 9998;
                         }
 
@@ -663,6 +669,13 @@ public class SearchClient {
                 }
             }
 
+            if (agent.getCurrentGoal() == null) {
+                Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
+                if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
+                    agent.destinationGoal = destinationGoal;
+                }
+            }
+
             // TODO check if there is a corner case available
             // TODO put the agent back to their goal position
             // if no goal left for him
@@ -681,7 +694,9 @@ public class SearchClient {
         if (agent.getCurrentGoal() != null) {
             System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal()));
             firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId(), agent.getCurrentGoal().getAttachedBox().getId());
-
+        } else if (agent.destinationGoal != null) {
+            System.err.println("Agent " + agent.getId() + " finding solution for moving to " + agent.destinationGoal);
+            firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId(), agent.destinationGoal);
         } else { //} else if (agent.moveToCornerCaseGoal){
             System.err.println("Agent " + agent.getId() + " finding solution for moving to corner case");
             firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId());
@@ -758,7 +773,14 @@ public class SearchClient {
                 //System.err.println(agent.getId() + " no step left");
                 State latestState = this.latestStateArray[agentNumber];
                 latestState.action = null; // Stay at the same state except that there is no action
+
+                // put goals to null for next iteration
                 agent.setCurrentGoal(null); // TODO What happens if execution fails in your last action? must update current goal to null somewhere
+                Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
+                if (destinationGoal != null && State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
+                    agent.destinationGoal = null;
+                }
+
                 if (agent.moveToCornerCaseGoal && State.degreeMap.get(latestState.getLocalCoordinateById().get(agent.getId())) == State.NORMAL_GOAL_PRIORITY) {
                     agent.moveToCornerCaseGoal = false;
                 }

@@ -85,9 +85,9 @@ public class SearchClient {
                     ArrayList<State> plan;
                     if (!agent.isWaiting) { // if is waiting, already has a plan
                         plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
-//                        plan = Search(new Strategy.StrategyDFS(), agent, problemType.COMPLETE);
+                        //plan = Search(new Strategy.StrategyDFS(), agent, problemType.COMPLETE);
                     } else {
-                        System.err.println(agent.getId() + " already have a plan");
+                        //System.err.println(agent.getId() + " already have a plan");
                         plan = planByAgent.get(agent);
                     }
 
@@ -675,7 +675,7 @@ public class SearchClient {
             firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId());
         }
 
-        System.err.println(firstState);
+        //System.err.println(firstState);
 
         strategy.addToFrontier(firstState);
 
@@ -735,7 +735,7 @@ public class SearchClient {
                 } else { // isWaiting == true
                     noAct++;
                     this.latestStateArray[agentNumber].action = null; // Stay at the same state except that there is no action
-                    System.err.println(agent.getId() + " is waiting");
+                    //System.err.println(agent.getId() + " is waiting");
                     actionString = "NoOp";
                 }
 
@@ -743,7 +743,7 @@ public class SearchClient {
                 //System.err.println("Agent " + agent.getId() + " reached its goal " + agent.getCurrentGoal());
                 noAct++;
                 actionString = "NoOp";
-                System.err.println(agent.getId() + " no step left");
+                //System.err.println(agent.getId() + " no step left");
                 State latestState = this.latestStateArray[agentNumber];
                 latestState.action = null; // Stay at the same state except that there is no action
                 agent.setCurrentGoal(null); // TODO What happens if execution fails in your last action? must update current goal to null somewhere
@@ -757,8 +757,8 @@ public class SearchClient {
 
 
         String jointAction = String.join(";", jointActionList);
-        System.err.println("Command: " + jointAction);
 
+        //System.err.println("Command: " + jointAction);
 
         if (noAct == agentList.size()) return false;
 
@@ -768,7 +768,8 @@ public class SearchClient {
         System.out.flush();
 
         String serverAnswer = serverMessages.readLine();
-        System.err.println("Answer: " + serverAnswer + "\n");
+
+        //System.err.println("Answer: " + serverAnswer + "\n");
 
         if (serverAnswer == null) return false;
 

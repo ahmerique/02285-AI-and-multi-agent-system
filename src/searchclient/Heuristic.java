@@ -381,7 +381,13 @@ public abstract class Heuristic implements Comparator<State> {
             // We are then simply interested in moving the agent to a specific location
             //TODO FIND A GOOD HEURISTIC TO find way back MABaguettes -------------------------------------
             sum = manhattan(n.getLocalCoordinateById().get(n.agentId), n.destination);
+            //sum = pullDistance(n.getLocalCoordinateById().get(n.agentId), n.destination, State.realBoardObjectsById.get(n.agentId).getColor());
+            
+            if(n.action.actionType != Command.Type.Move){
+                sum +=1000;
+            }
         }
+        
 
         //Get the minimum distance from each box movable by the agent to its assigned goal and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {

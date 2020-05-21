@@ -60,6 +60,7 @@ public class SearchClient {
                             && !highGoalQueue.isEmpty()
                             && agent.getCurrentGoal().getPriority() < highGoalQueue.get(0).getPriority()) {
                         agent.requeueCurrentGoal(highGoalQueue);
+                        continue;
                     }
 
                     // Low priority has to wait for all the other before beginning
@@ -67,6 +68,7 @@ public class SearchClient {
                             && !normalGoalQueue.isEmpty()
                             && !highGoalQueue.isEmpty()) {
                         agent.requeueCurrentGoal(lowGoalQueue);
+                        continue;
                     }
                 }
             }

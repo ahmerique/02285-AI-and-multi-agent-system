@@ -63,6 +63,15 @@ public class SearchClient {
             // only one agent can fill the first case of a deadEnd)
             // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
 
+            /*
+            for (Agent agent : agentListByPriority){
+                System.err.print(agent.getId()+ " ");
+                System.err.print(agent.getCurrentGoal() + " ");
+                System.err.println(agent.destinationGoal);
+
+            }
+            */
+
             if (isMA) {
                 for (Agent agent : agentList) {
                     if (!agent.isWaiting && agent.getCurrentGoal() != null) {
@@ -71,7 +80,7 @@ public class SearchClient {
                         if (agent.getCurrentGoal().getPriority() > State.NORMAL_GOAL_PRIORITY
                                 && !highGoalQueue.isEmpty()
                                 && agent.getCurrentGoal().getPriority() < highGoalQueue.get(0).getPriority()) {
-                            System.err.println("--- Goal removed : " + agent.getCurrentGoal());
+                            //System.err.println("--- Goal removed : " + agent.getCurrentGoal());
                             agent.requeueCurrentGoal(highGoalQueue);
                             continue;
                         }
@@ -101,11 +110,12 @@ public class SearchClient {
                         // Strategy choice
                         plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
 
+                        /* TODO TRY  RElAXED-------------------------------------------------------------------------------------------------------------------------------
                         if (plan == null) {
                             System.err.println("Solution not found, try relaxed problem");
-                            // TODO TRY  RElAXED-------------------------------------------------------------------------------------------------------------------------------
-                            //plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.RELAXED);
+                            plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.RELAXED);
                         }
+                        */
 
                         if (plan != null) {
 
@@ -696,8 +706,11 @@ public class SearchClient {
                         //Original distance from agent to box position + original distance from box to its goal
                         double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
                         // !!! ONLY WORKS IF MAX DEPTH OF DEAD-END IS <~25
-                        if(metric<5000){scores[j][i] = metric + ((1000 - tempGoal.getPriority()) * 200);}
-                        else{scores[j][i] = 10000;}
+                        if (metric < 5000) {
+                            scores[j][i] = metric + ((1000 - tempGoal.getPriority()) * 200);
+                        } else {
+                            scores[j][i] = 10000;
+                        }
 
                     } else {
                         scores[j][i] = 10000;
@@ -708,14 +721,17 @@ public class SearchClient {
 
                 for (Goal tempGoal : normalGoalQueue) {
 
-                    if (tempGoal.getColor() == colorToMatch) {
+                    if (tempGoal.getColor().equals(colorToMatch)) {
                         Box boxOfGoal = tempGoal.getAttachedBox();
                         coord1 = State.realCoordinateById.get(boxOfGoal.getId());
                         coord2 = State.realCoordinateById.get(agent.getId());
                         //Original distance from agent to box position + original distance from box to its goal + 5000
                         double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
-                        if(metric<5000){scores[j][i] = metric + 5000;}
-                        else{scores[j][i] = 10000;}
+                        if (metric < 5000) {
+                            scores[j][i] = metric + 5000;
+                        } else {
+                            scores[j][i] = 10000;
+                        }
 
 
                     } else {
@@ -727,14 +743,17 @@ public class SearchClient {
 
                 for (Goal tempGoal : lowGoalQueue) {
 
-                    if (tempGoal.getColor() == colorToMatch) {
+                    if (tempGoal.getColor().equals(colorToMatch)){
                         Box boxOfGoal = tempGoal.getAttachedBox();
                         coord1 = State.realCoordinateById.get(boxOfGoal.getId());
                         coord2 = State.realCoordinateById.get(agent.getId());
                         //Original distance from agent to box position + original distance from box to its goal + 7500
                         double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
-                        if(metric<5000){scores[j][i] = metric + 7500;}
-                        else{scores[j][i] = 10000;}
+                        if (metric < 5000) {
+                            scores[j][i] = metric + 7500;
+                        } else {
+                            scores[j][i] = 10000;
+                        }
 
                     } else {
                         scores[j][i] = 10000;
@@ -812,8 +831,8 @@ public class SearchClient {
                         }
 
                         //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
-                    
-                    } else if (scores[k][jobs[k]] >= 9998){
+
+                    } else if (scores[k][jobs[k]] >= 9998) {
 
                         //Agent has no goal or an impossible goal
                         agent = agentList.get(jobs[k]);
@@ -957,12 +976,22 @@ public class SearchClient {
         strategy.addToFrontier(firstState);
 
         int iterations = 0;
+        int iterationLimit = 0;
         while (true) {
+
+            /* TODO Iteration limit ----------------------------------------------------------------------------------------------------------------------------------------
+            if( iterationLimit == 100){
+                System.err.println("iteration limit reached");
+                return null;
+            }
+            */
+/*
             if (iterations == 1000) {
                 System.err.println(strategy.searchStatus());
                 iterations = 0;
+                iterationLimit++;
             }
-
+*/
             if (strategy.frontierIsEmpty()) {
                 System.err.println("frontier is empty");
                 return null;

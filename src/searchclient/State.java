@@ -214,7 +214,7 @@ public class State {
                 return newGoal;
 
             default:
-                System.err.println("INVALID setNewStateObject value");
+                //System.err.println("INVALID setNewStateObject value");
                 return null;
         }
     }

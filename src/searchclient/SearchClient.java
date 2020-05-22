@@ -15,12 +15,13 @@ public class SearchClient {
     public ArrayList<Goal> lowGoalQueue = new ArrayList<>();
     public ArrayList<Agent> agentList = new ArrayList<>();
     public ArrayList<Agent> agentListByPriority = new ArrayList<>();
+    private ArrayList<Agent> agentListUnoccupied = new ArrayList<>();
     public HashMap<Agent, ArrayList<State>> planByAgent = new HashMap<>();
     public State[] latestStateArray;
     public String[] latestServerOutput;
     public HashMap<String, String> colors = new HashMap<>(); //All colors
     public ArrayList<Box> setBoxes = new ArrayList<>(); //All boxes
-
+    
     public SearchClient(BufferedReader serverMessages) throws Exception {
 
         System.err.println("Begin reading from server");
@@ -57,6 +58,14 @@ public class SearchClient {
         while (!finished) {
 
             //Bidding on goals
+            agentListUnoccupied.clear();
+            for(Agent agent : agentList) {
+                if(agent.getCurrentGoal() == null){
+                    System.err.println(agent.getId());
+                    agentListUnoccupied.add(agent);
+                }
+            }
+
             matchAgentsAndGoals();
 
             // Check if all goals priority are inferior to the first element of goalQueue (For instance if
@@ -674,10 +683,10 @@ public class SearchClient {
         Coordinate coord2;
         double score;
         int totalGoals = highGoalQueue.size() + normalGoalQueue.size() + lowGoalQueue.size();
-        double[][] scores = new double[totalGoals][agentList.size()];
+        double[][] scores = new double[totalGoals][agentListUnoccupied.size()];
 
         if(totalGoals > 0) {
-            for (Agent agent : agentList) {
+            for (Agent agent : agentListUnoccupied) {
                 String colorToMatch = agent.getColor();
 
                 for (Goal tempGoal : highGoalQueue) {
@@ -781,7 +790,7 @@ public class SearchClient {
             for (int k = 0; k < jobs.length; k++) {
 
                 if (jobs[k] != -1) {
-                    agent = agentList.get(jobs[k]);
+                    agent = agentListUnoccupied.get(jobs[k]);
 
                     if (scores[k][jobs[k]] < 9998) {
 
@@ -804,12 +813,12 @@ public class SearchClient {
 
                         }
 
-                        //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
+                        System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
                     
                     } else if (scores[k][jobs[k]] >= 9998){
 
                         //Agent has no goal or an impossible goal
-                        agent = agentList.get(jobs[k]);
+                        agent = agentListUnoccupied.get(jobs[k]);
                         Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
                         if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
                             agent.destinationGoal = destinationGoal;
@@ -830,7 +839,7 @@ public class SearchClient {
 
 
         } else {
-            for (Agent agent : agentList){
+            for (Agent agent : agentListUnoccupied){
                 Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
                     if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
                         agent.destinationGoal = destinationGoal;

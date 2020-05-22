@@ -166,6 +166,21 @@ public class State {
         return this.localCoordinateById;
     }
 
+    public HashMap<Coordinate, String> getlocalIdByCoordinate() {
+        return this.localIdByCoordinate;
+    }
+
+    public State getParent() {
+        return this.parent;
+    }
+
+    public void setLocalIdByCoordinate(HashMap<Coordinate, String> newLocalIdByCoordinate ) {
+        this.localIdByCoordinate = newLocalIdByCoordinate;
+    }
+
+    public void setLocalCoordinateById(HashMap<String, Coordinate> newLocalCoordinateById ) {
+        this.localCoordinateById = newLocalCoordinateById;
+    }
     public int g() {
         return this.g;
     }
@@ -373,6 +388,25 @@ public class State {
     }
 
     private boolean cellIsFree(Coordinate coordinate) {
+        // Add to handle Agents coordination
+        /* TODO: Don't do this loop on a SA level */
+        // A cell containing an Agent on the path of an agent that is clearing is not a free cell
+        /*
+        if (((Agent) realBoardObjectsById.get(this.agentId)).isClearing){
+            // System.err.println("Agent clearing: " + this.agentId);
+            for(HashMap.Entry<String, Coordinate> a: localCoordinateById.entrySet()){
+                if (realBoardObjectsById.get(a.getKey()) instanceof Agent){
+                    // System.err.println("Agent " + a.getKey() + " on path at coordinates " + a.getValue());
+                    if (a.getKey() != this.agentId && a.getValue().equals(coordinate)) {
+                        // System.err.println("Cell not free");
+                        return false;
+                    }
+                } 
+            }
+        }
+        */
+
+        // Normal return
         return State.wallByCoordinate.get(coordinate) == null
                 && localIdByCoordinate.get(coordinate) == null;
     }

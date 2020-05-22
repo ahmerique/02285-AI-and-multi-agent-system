@@ -81,7 +81,22 @@ public class Command {
         }
     }
 
+// Return an array with the new coordinates of the Agent, and the coordinate of the box if it is a Push/Pull action
+public ArrayList<Coordinate> commandToCoordinates(Coordinate startPosition, Command c){
+    ArrayList<Coordinate> retArr = new ArrayList<>();
 
+    Coordinate newAgentPosition = new Coordinate(startPosition.getRow() + dirToRowChange(c.dir1), startPosition.getColumn() + dirToColChange(c.dir1));
+    retArr.add(newAgentPosition);
+
+    if(c.actionType == Command.Type.Push){
+        Coordinate newBoxPosition = new Coordinate(newAgentPosition.getRow() + dirToRowChange(c.dir2), newAgentPosition.getColumn() + dirToColChange(c.dir2));
+        retArr.add(newBoxPosition);
+    } else if(c.actionType == Command.Type.Pull){
+        Coordinate newBoxPosition = new Coordinate(startPosition.getRow() + dirToRowChange(c.dir2), startPosition.getColumn() + dirToColChange(c.dir2));
+        retArr.add(newBoxPosition);
+    }
+    return retArr;
+}
 
     public final Type actionType;
     public final Dir dir1;

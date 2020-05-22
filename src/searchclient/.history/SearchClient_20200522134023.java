@@ -65,13 +65,13 @@ public class SearchClient {
             // only one agent can fill the first case of a deadEnd)
             // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
             for (Agent agent : agentList) {
-                if (!agent.isWaiting && agent.getCurrentGoal() != null ) { // && !agent.getAgentOrder()
+                if (!agent.isWaiting && agent.getCurrentGoal() != null) {
 
                     // High priority goals has to be finished in order
                     if (agent.getCurrentGoal().getPriority() > State.NORMAL_GOAL_PRIORITY
                             && !highGoalQueue.isEmpty()
                             && agent.getCurrentGoal().getPriority() < highGoalQueue.get(0).getPriority()) {
-                        // System.err.println("--- Goal removed : " + agent.getCurrentGoal());
+                        System.err.println("--- Goal removed : " + agent.getCurrentGoal());
                         agent.requeueCurrentGoal(highGoalQueue);
                         continue;
                     }
@@ -91,12 +91,12 @@ public class SearchClient {
 
             int minLength = 0;
             for (Agent agent : agentListByPriority) {
-                if ((agent.getCurrentGoal() != null && !agent.getAgentOrder()) || agent.moveToCornerCaseGoal || agent.destinationGoal != null ) { //An agent with an order to wait during clearing don't search for its goal for 1 turn
+                if (agent.getCurrentGoal() != null || agent.moveToCornerCaseGoal || !agent.getAgentOrder() || agent.destinationGoal != null ) { //An agent with an order to wait during clearing don't search for its goal for 1 turn
 
                     // Strategy choice
                     //ArrayList<State> plan = Search(new Strategy.StrategyBFS(), agent, problemType.COMPLETE);
                     ArrayList<State> plan;
-                    if (!agent.isWaiting && !agent.getAgentOrder()) { // if is waiting, already has a plan
+                    if (!agent.isWaiting) { // if is waiting, already has a plan
                         plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
                         //plan = Search(new Strategy.StrategyDFS(), agent, problemType.COMPLETE);
                     } else {
@@ -104,7 +104,7 @@ public class SearchClient {
                         plan = planByAgent.get(agent);
                     }
 
-                    if (plan != null && !agent.isWaiting && !agent.getAgentOrder()) { // 
+                    if (plan != null && !agent.isWaiting) {
 
                         // add NoOP to let the agent who has priority finish first
                         int planSize = plan.size();
@@ -147,7 +147,7 @@ public class SearchClient {
                 }
                 */
                 
-                /*
+
                 if (!status) {
                     System.err.println("-----------------------");
                     for(Map.Entry<String,Coordinate> tuple : State.realCoordinateById.entrySet()) {
@@ -156,20 +156,20 @@ public class SearchClient {
                         }
                     }
                 }   
-                */
+                
             }
 
             // Handle Error in case of a conflicts when sending plans of each Agent to server
             boolean conflict_error = false;
 
-            // System.err.println("Starting to check serveur Outputs for current turn");
+            System.err.println("Starting to check serveur Outputs for current turn");
              // Go through all latest Server Outputs linked to each agent
             for (int i = 0; i < latestServerOutput.length; i++) {
-                // System.err.println("Server output:" + latestServerOutput[i] + " for agent " + agentList.get(i));
-                // System.err.println("State concerned:\n" + latestStateArray[i].toString());
+                System.err.println("Server output:" + latestServerOutput[i] + " for agent " + agentList.get(i));
+                System.err.println("State concerned:\n" + latestStateArray[i].toString());
                 // Case if there is an error for specific Agent while sending actions to the server
                 if (latestServerOutput[i] != null && latestServerOutput[i].equals("false")) {
-                    // System.err.println("Enter loop server error");
+                    System.err.println("Enter loop server error");
                     conflict_error = true;
                     agentErrorState[i] = true;
                     
@@ -177,18 +177,14 @@ public class SearchClient {
                     Agent failAgent = (Agent) State.realBoardObjectsById.get(latestStateArray[i].getAgentId());
 
                     // Find if Agent had not the order to wait while clearing
-                    
                     if (!failAgent.getAgentOrder()) { // || (failAgent.getCurrentGoal() != null)  
-                        // System.err.println("Agent number " + failAgent.getId() + " need help to clear its path");
-                        
+                        System.err.println("Agent number " + failAgent.getId() + " need help to clear its path");
 
                         // Show States in lastestStateArray when error
-                        /*
                         System.err.println("Show States in lastestStateArray when error:\n");
                         for (int z = 0; z < latestStateArray.length; z++){
                             System.err.println(latestStateArray[z].toString());
                         }
-                        */
 
                         // Ask other agents for help
                         this.askHelp(failAgent, latestStateArray[i], latestStateArray); 
@@ -201,7 +197,7 @@ public class SearchClient {
 
                     // Find agent non concerned by conflict
                     Agent succeedAgent = (Agent) State.realBoardObjectsById.get(latestStateArray[i].getAgentId());
-                    // System.err.println("Agent number " + succeedAgent.getId() + " action is done with no error");
+                    System.err.println("Agent number " + succeedAgent.getId() + " action is done with no error");
 
                     // If an agent manage to succeed in doing its action and it gave previously the order to wait to another agent
                     // Then remove the order to wait on this agent
@@ -857,7 +853,7 @@ public class SearchClient {
 
                         }
 
-                        //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
+                        System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
                     
                     } else if (scores[k][jobs[k]] >= 9998){
 
@@ -1008,12 +1004,12 @@ public class SearchClient {
         // currentState = last unsuccesfully sent State to server concerning agentAskingHelp
         // his parent = last succesfully sent State to server concerning agentAskingHelp
 
-        //System.err.println("Current State when asking help:\n" + currentState.getRealMapString());
+        System.err.println("Current State when asking help:\n" + currentState.toString());
 
         // Initialization
         ArrayList<Coordinate> clearCoordinates = new ArrayList<>();
         Coordinate agent_coordinates = currentState.getParent().getLocalCoordinateById().get(currentState.getParent().getAgentId()); // Actual coordinate of the agent
-        //System.err.println("Coordinates of the agent currently asking for Help: " + agent_coordinates.toString());
+        System.err.println("Coordinates of the agent currently asking for Help: " + agent_coordinates.toString());
 		Command action_agent; // Action started by agent
         ArrayList<Coordinate> actionEffectsCoordinates; // Coordinate of the Agent and the potentialy involved box after the agent action
 
@@ -1027,23 +1023,19 @@ public class SearchClient {
         */
 
         // Show current plan of Agent before removing steps
-        /*
         System.err.println("Show the current plan of Agent asking help:\n");
         for (int i = 0; i < planByAgent.get(agentAskingHelp).size(); i++){
             System.err.println(planByAgent.get(agentAskingHelp).get(i).toString());
         }
-        */
-
         // Add last removed State to plan
         // planByAgent.get(agentAskingHelp).add(0, currentState);
 
         // Show current plan of Agent before removing steps
-        /*
         System.err.println("Show the current plan of Agent asking help after adding removed State plan:\n");
         for (int i = 0; i < planByAgent.get(agentAskingHelp).size(); i++){
             System.err.println(planByAgent.get(agentAskingHelp).get(i).toString());
         }
-        */
+        
         // Store plan of agent asking help
         ArrayList<State> plan_helped = new ArrayList<State>(planByAgent.get(agentAskingHelp));
 
@@ -1052,8 +1044,8 @@ public class SearchClient {
 			actionEffectsCoordinates = currentState.action.commandToCoordinates(agent_coordinates, action_agent); 
             agent_coordinates = new Coordinate(actionEffectsCoordinates.get(0).getRow(), actionEffectsCoordinates.get(0).getColumn());
             clearCoordinates.addAll(actionEffectsCoordinates); // Add coordinates to list of coordinates to clear
-            //System.err.println("Last action in askHelp:" + action_agent.toString());
-            //System.err.println("Last State in askHelp:\n" + agentAskingHelp.lastStateHelp.toString());
+            System.err.println("Last action in askHelp:" + action_agent.toString());
+            System.err.println("Last State in askHelp:\n" + agentAskingHelp.lastStateHelp.toString());
 			
         }
         
@@ -1088,7 +1080,7 @@ public class SearchClient {
                     }
 
                     // Find if one agent is on the case requested to be cleared or one is able to move the Box on the case requested to be cleared
-                    if(lastStatesByAgentArray[agentList.indexOf(agent)].getLocalCoordinateById().get(agent.getId()).equals(coord) || // add getParent() ?
+                    if(lastStatesByAgentArray[agentList.indexOf(agent)].getParent().getLocalCoordinateById().get(agent.getId()).equals(coord) || // is the getParent() nice ?
                     (annoying_box != null && annoying_box.getColor() != null && annoying_box.getColor().equals(agent.getColor()) && !annoying_box.getColor().equals(agentAskingHelp.getColor()))){
                         System.err.println("Agent " + agent.getId() + " find coordinates " + coord.toString() + " to clear"); 
                         agentClearCoordinates.add(coord);
@@ -1162,7 +1154,7 @@ public class SearchClient {
         myCurrentState.boxId = lastStatesByAgentArray[agentList.indexOf(agentHelping)].boxId;
 
         agentHelping.stateToSearchStrategy = myCurrentState; // Store State to use to compute a new Strategy
-        System.err.println("Show the Map used by helping agent" + agentHelping.getId() + " to find a path:\n" + agentHelping.stateToSearchStrategy.getRealMapString());
+        System.err.println("Show the Map used by helping agent" + agentHelping.getId() + " to find a path:\n" + agentHelping.stateToSearchStrategy.toString());
         // System.err.println("Show the previous Map used by helping Agent " + agentHelping.getId() + " to find a path:\n" + lastStatesByAgentArray[agentList.indexOf(agentHelping)].getParent().toString());
 
         // Compute a new plan starting from current State

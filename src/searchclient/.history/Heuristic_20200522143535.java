@@ -665,25 +665,25 @@ public abstract class Heuristic implements Comparator<State> {
 	 */
     public double clearingHeuristic(State n){
         // System.err.println("Start using clearing Heuristic");
-		double cost = 10;
+		double cost = 1;
         boolean moveClearedBox = true;
         Agent agent = (Agent) State.realBoardObjectsById.get(n.getAgentId());
-        // System.err.println("Agent in clearing Heuristic: " + agent.getId());
+        System.err.println("Agent in clearing Heuristic: " + agent.getId());
         Coordinate agent_coordinate = n.getLocalCoordinateById().get(n.getAgentId());
         // System.err.println("Coordinates of agent in clearing Heuristic: " + agent_coordinate.toString());
         HashMap<BoardObject, Coordinate> coordinateByBox = this.getAllCoordinate(n, "Box");
 
 		for(Coordinate coord : agent.clearCoordinates){
-            // System.err.println("Clear coordinates tested: " + coord.toString());
+            System.err.println("Clear coordinates tested: " + coord.toString());
             Box box;
-            if (coordinateByBox.containsValue(coord)){
+            if (coordinateByBox.containsValue(coord){
                 box = (Box) State.realBoardObjectsById.get(n.getlocalIdByCoordinate().get(coord));
             } else {
                 box = null;
             }
 
 			if(box != null && box.getColor() != null && !box.getColor().equals(agent.getColor())){
-				cost += 200; // Reward if moving a box to help someone
+				cost += 20; // Reward if moving a box to help someone
                 cost += manhattan(agent_coordinate, n.getLocalCoordinateById().get(box.getId()));
  
 				Command c = n.action;
@@ -702,33 +702,56 @@ public abstract class Heuristic implements Comparator<State> {
             // System.err.println("Coordinate tested in clearing Heuristic: " + coord.toString());
             // System.err.println("Coordinate of Agent " + agent.getId() + ": " + agent_coordinate.toString());
 			if(coord.equals(agent_coordinate)) {
-				cost += 1000; // Incentive for the agent to don't go on a cell to clear
+				cost += 100; // Incentive for the agent to don't go on a cell to clear
             }
             // If the agent is moving a box that is not the target box, the heuristic is worsened.
 			if(moveClearedBox){
-				cost += 2000;
+				cost += 200;
 			}
         }
         
         // Check if there is a Box at the agent coordinate
 		BoardObject possibleBox = State.realBoardObjectsById.get(n.getlocalIdByCoordinate().get(agent_coordinate));
 		if(possibleBox != null && possibleBox instanceof Box){
-			cost += 400;
+			cost += 40;
         }
-            
+        
+        // Check if there is an agent on next location
+        // TODO: Get agentList in Heuristic to stop looping on all BoardObjects
+        
+        for(HashMap.Entry<String, BoardObject> a: State.realBoardObjectsById.entrySet()){ 
+            if (State.realBoardObjectsById.get(a.getKey()) instanceof Agent){
+                if (a.getKey() != agent.getId() && State.realCoordinateById.get(a.getKey()).equals(agent_coordinate)) {
+                    // System.err.println("Found agent on next case");
+                    cost += 20; // += 20
+                }
+            } 
+        }
+
+        /*// Old Verison
+        for(HashMap.Entry<String, Coordinate> a: n.getLocalCoordinateById().entrySet()){ 
+            if (State.realBoardObjectsById.get(a.getKey()) instanceof Agent){
+                if (a.getKey() != agent.getId() && a.getValue().equals(agent_coordinate)) {
+                    System.err.println("Found agent on next case");
+                    cost += 2000; // += 20
+                }
+            } 
+        }   */     
 
         Command c2 = n.action;
-        // Is there a box on the case where the agent is moving ?
+        // Is there a box on the case when the agent is moving ?
 		if(c2 != null && c2.actionType != Command.Type.Move){
 			int boxRow = agent_coordinate.getRow() + Command.dirToRowChange(c2.dir2);
 			int boxCol = agent_coordinate.getColumn() + Command.dirToColChange(c2.dir2);
 			possibleBox = State.realBoardObjectsById.get(n.getlocalIdByCoordinate().get(new Coordinate(boxRow, boxCol)));
 			if(possibleBox != null && possibleBox instanceof Box){
-                cost += 400;
+                cost += 40;
 
-                // High cost to don't move a Box in final position */
-				if(coordinateByBox.get((Box) possibleBox).equals(State.goalWithCoordinate.get(((Box) possibleBox).getBoxGoal()))){
-					cost += 5000;
+                // High cost to don't move a Box in final position
+                // Still has to be smaller than the costs used for corridors
+                /* TODO: Add isOnGoal() update in SearchClient or check matching with Goal coordinate */
+				if( ((Box) possibleBox).isOnGoal()){
+					cost += 500;
 				}
 
 			}
@@ -749,8 +772,8 @@ public abstract class Heuristic implements Comparator<State> {
         if(!agent.isClearing) {
 			return (int) Math.round(getHeuristic(n));
 		} else {
-            //System.err.println("Computing clear mode Heuristic");
-            //return (int) Math.round(clearingHeuristic(n)) + 20*((int) Math.round(getHeuristic(n)));
+            // System.err.println("Computing clear mode Heuristic");
+            //return (int) Math.round(clearingHeuristic(n)) + (int) Math.round(getHeuristic(n));
             return (int) Math.round(clearingHeuristic(n));
 		}
 	}

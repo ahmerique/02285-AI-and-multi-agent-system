@@ -727,7 +727,7 @@ public abstract class Heuristic implements Comparator<State> {
                 cost += 400;
 
                 // High cost to don't move a Box in final position */
-				if(coordinateByBox.get((Box) possibleBox).equals(State.goalWithCoordinate.get(((Box) possibleBox).getBoxGoal()))){
+				if(coordinateByBox.get((Box) possibleBox).equal(State.goalWithCoordinate.get(((Box) possibleBox).getBoxGoal()))){
 					cost += 5000;
 				}
 
@@ -750,7 +750,7 @@ public abstract class Heuristic implements Comparator<State> {
 			return (int) Math.round(getHeuristic(n));
 		} else {
             //System.err.println("Computing clear mode Heuristic");
-            //return (int) Math.round(clearingHeuristic(n)) + 20*((int) Math.round(getHeuristic(n)));
+            //return (int) Math.round(clearingHeuristic(n)) + 4*((int) Math.round(getHeuristic(n)));
             return (int) Math.round(clearingHeuristic(n));
 		}
 	}

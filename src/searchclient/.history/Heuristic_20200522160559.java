@@ -750,8 +750,8 @@ public abstract class Heuristic implements Comparator<State> {
 			return (int) Math.round(getHeuristic(n));
 		} else {
             //System.err.println("Computing clear mode Heuristic");
-            //return (int) Math.round(clearingHeuristic(n)) + 20*((int) Math.round(getHeuristic(n)));
-            return (int) Math.round(clearingHeuristic(n));
+            return (int) Math.round(clearingHeuristic(n)) + 20*((int) Math.round(getHeuristic(n)));
+            //return (int) Math.round(clearingHeuristic(n));
 		}
 	}
 

@@ -12,8 +12,18 @@ public class Agent extends BoardObject {
     private Goal currentGoal;
     public Coordinate destinationGoal;
     public Boolean moveToCornerCaseGoal = false;
+
+    // Communication in corridors
     public Boolean isWaiting = false;
-    public ArrayList<State> plan = new ArrayList<>();
+    public ArrayList<State> plan = new ArrayList<>();// Communication between agents
+   
+   // Communication between agents
+    private Boolean isWaiting2; // An agent with isWaiting2 = true wait for one turn to don't bother another agent
+    private Agent askedToWaitBy; 
+    public Boolean isClearing = false; // To know if agent has order to clear path for another agent
+    public ArrayList<Coordinate> clearCoordinates; // Cells to clear when it is the case
+    public State lastStateHelp = null; // Variable to store lastState when removing action from a conflictual plan
+    public State stateToSearchStrategy = null; // If a new plan need to be computed, it is starting from this State
 
     /**
      * Instantiate a new Agent
@@ -23,18 +33,33 @@ public class Agent extends BoardObject {
      */
     public Agent(String id, String color) {
         super(id, color);
+        this.isWaiting2 = false;
+        this.askedToWaitBy = null;
         counter++;
     }
 
     public Goal getCurrentGoal() {
         return currentGoal;
     }
+    public Boolean getAgentOrder() {
+        return this.isWaiting2;
+    }
 
+    public Agent getAgentWhoOrdered() {
+        return this.askedToWaitBy;
+    }
     public void setCurrentGoal(Goal currentGoal) {
         this.currentGoal = currentGoal;
     }
+    public void setOrder(boolean mustWait) {
+        this.isWaiting2 = mustWait;
+    }  
 
-    public void requeueCurrentGoal(ArrayList<Goal> goalQueue) {
+    public void giveOrderToAgent(Agent agent) {
+        agent.isWaiting2 = true;
+        agent.askedToWaitBy = this;
+    }   
+     public void requeueCurrentGoal(ArrayList<Goal> goalQueue) {
         Goal.insertInOrderedGoalList(goalQueue, this.currentGoal);
         this.currentGoal = null;
     }

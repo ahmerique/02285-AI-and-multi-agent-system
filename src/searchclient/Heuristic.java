@@ -379,10 +379,10 @@ public abstract class Heuristic implements Comparator<State> {
         } else if (n.destination != null) {
             // Case when going to destination
             // We are then simply interested in moving the agent to a specific location
-            //TODO FIND A GOOD HEURISTIC TO find way back MABaguettes -------------------------------------
             sum = manhattan(n.getLocalCoordinateById().get(n.agentId), n.destination);
             //sum = pullDistance(n.getLocalCoordinateById().get(n.agentId), n.destination, State.realBoardObjectsById.get(n.agentId).getColor());
             
+            //The agent should avoir as much as possible to move boxes
             if(n.action.actionType != Command.Type.Move){
                 sum +=1000;
             }
@@ -391,9 +391,10 @@ public abstract class Heuristic implements Comparator<State> {
 
         //Get the minimum distance from each box movable by the agent to its assigned goal and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
-            if (State.realBoardObjectsById.get(n.getAgentId()).getColor().equals(box.getKey().getColor())) {
-                double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
-                sum += distanceMinimum;
+            Box realBox = (Box) box.getKey();
+            if (realBox.getBoxGoal() != null && State.realBoardObjectsById.get(n.getAgentId()).getColor().equals(realBox.getColor())) {
+                double distanceMinimum = 1 + getMinimumDistanceFromBoxToAssignedGoal(realBox, box.getValue(), method);
+                sum += realBox.getBoxGoal().getCoordinate().equals(box.getValue()) ? 0 : distanceMinimum;
             }
         }
         return sum;

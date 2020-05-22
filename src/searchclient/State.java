@@ -381,7 +381,7 @@ public class State {
 
     public static boolean cellIsFreeFromBox(Coordinate coordinate, String color) {
         BoardObject object = realBoardObjectsById.get(realIdByCoordinate.get(coordinate));
-        return (!(object instanceof Box && object.getColor().equals(color)));
+        return (!(object instanceof Box && !object.getColor().equals(color)));
     }
 
     private State childState() {

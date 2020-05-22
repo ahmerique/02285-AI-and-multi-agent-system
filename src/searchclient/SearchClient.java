@@ -20,7 +20,7 @@ public class SearchClient {
     public String[] latestServerOutput;
     public HashMap<String, String> colors = new HashMap<>(); //All colors
     public ArrayList<Box> setBoxes = new ArrayList<>(); //All boxes
-
+    public Boolean isMA;
     public SearchClient(BufferedReader serverMessages) throws Exception {
 
         System.err.println("Begin reading from server");
@@ -110,7 +110,7 @@ public class SearchClient {
                         plan = planByAgent.get(agent);
                     }
 
-                    if (plan == null) {
+                    if (plan == null && isMA) {
                         System.err.println("Solution not found, try relaxed problem");
                         plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.RELAXED);
                     }
@@ -207,7 +207,6 @@ public class SearchClient {
 
     private void readMapFromServer(BufferedReader serverMessages) throws Exception {
 
-        boolean isMA; //SA if 1 at the end of the file reading, else MA
         List<String> serverMessageList = new ArrayList<>(); //All lines of the Initial level
         int max_col = 0; //Maximum column reached
         int row = 0; //Iteration variable
@@ -231,8 +230,9 @@ public class SearchClient {
                     break;
 
                 case 2://Level Name
-                    isMA = toLowerCase(line.charAt(0)) != 's';
-                    //No action needed. Name of the level can be saved here.
+                    if (line.charAt(0) != '#') {
+                        isMA = toLowerCase(line.charAt(0)) == 'm';
+                    }//No action needed. Name of the level can be saved here.
                     break;
 
                 case 3://Colors
@@ -931,7 +931,7 @@ public class SearchClient {
         while (true) {
 
             // TODO Iteration limit ----------------------------------------------------------------------------------------------------------------------------------------
-            if( iterationLimit == 200){
+            if( iterationLimit == 100){
                 //System.err.println("iteration limit reached");
                 return null;
             }

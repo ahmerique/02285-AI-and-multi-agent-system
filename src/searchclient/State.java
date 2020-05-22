@@ -49,16 +49,14 @@ public class State {
      * LOCAL ATTRIBUTES
      **/
 
-    private HashMap<String, Coordinate> localCoordinateById;
-    private HashMap<Coordinate, String> localIdByCoordinate;
+    public HashMap<String, Coordinate> localCoordinateById;
+    public HashMap<Coordinate, String> localIdByCoordinate;
 
-    // TODO On peut peut être remplacer par de vraies objet car ils ne seront pas copiés, uniquement référencés.
     public String agentId;
     public String boxId;
     public Coordinate destination;
-    //
 
-    private State parent;
+    public State parent;
     public Command action;
 
     // Heuristic g
@@ -174,7 +172,6 @@ public class State {
         return this.parent == null;
     }
 
-    //TODO : Readapt this function to actual use case
     public boolean isSubGoalState() {
         if (boxId != null) {
             Box boxObject = (Box) realBoardObjectsById.get(boxId);
@@ -235,7 +232,6 @@ public class State {
         return (stringId + objectCounter);
     }
 
-    // TODO update map from agent action
     public static boolean updateStaticMap(State[] latestStateArray, String[] latestServerOutput) {
 
         boolean hasError = false;
@@ -276,7 +272,7 @@ public class State {
                     }
                 }
             } else {
-                // TODO Conflict handling or not possible move handling
+                // Conflict handling or not possible move handling
                 hasError = true;
             }
 
@@ -385,7 +381,7 @@ public class State {
 
     public static boolean cellIsFreeFromBox(Coordinate coordinate, String color) {
         BoardObject object = realBoardObjectsById.get(realIdByCoordinate.get(coordinate));
-        return (!(object instanceof Box && object.getColor() != color));
+        return (!(object instanceof Box && object.getColor().equals(color)));
     }
 
     private State childState() {

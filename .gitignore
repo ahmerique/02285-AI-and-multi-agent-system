@@ -29,3 +29,4 @@ build/*
 lib/*
 .history/*
 todo.txt
+complevelsToTest/*

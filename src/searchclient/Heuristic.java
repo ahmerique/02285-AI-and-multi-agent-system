@@ -220,8 +220,8 @@ public abstract class Heuristic implements Comparator<State> {
     /**
      * pullDistance, but taking into account boxes of color
      *
-     * @param c1 coordinate 1
-     * @param c2 coordinate 2
+     * @param c1    coordinate 1
+     * @param c2    coordinate 2
      * @param color color of object
      * @return distance form position c1 to position c2 on the board
      */
@@ -376,26 +376,52 @@ public abstract class Heuristic implements Comparator<State> {
                     n.getLocalCoordinateById().get(n.getBoxId()),
                     method);
             sum += agentDistanceMinimum;
+
+            /*
+            // DON'T MOVE OTHER BOX CLOSER TO THEIR GOAL
+            Box box = (Box) State.realBoardObjectsById.get(n.boxId);
+            Coordinate boxCoordinate = n.getLocalCoordinateById().get(n.boxId);
+            double boxGoalDistanceMinimum = 1+getMinimumDistanceFromBoxToAssignedGoal(box, boxCoordinate, method);
+            sum += boxGoalDistanceMinimum;
+*/
+
         } else if (n.destination != null) {
             // Case when going to destination
             // We are then simply interested in moving the agent to a specific location
-            //TODO FIND A GOOD HEURISTIC TO find way back MABaguettes -------------------------------------
             sum = manhattan(n.getLocalCoordinateById().get(n.agentId), n.destination);
             //sum = pullDistance(n.getLocalCoordinateById().get(n.agentId), n.destination, State.realBoardObjectsById.get(n.agentId).getColor());
-            
-            if(n.action.actionType != Command.Type.Move){
-                sum +=1000;
+
+            if (n.action.actionType != Command.Type.Move) {
+                sum += 1000;
             }
         }
-        
+
+        /* TODO DON'T MOVE OTHER BOX CLOSER TO THEIR GOAL SOLVE SAFPHPOP.lvl ----------------------------------------------------------------------------------------
+        // Prevent them from moving box from their goal
+        for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
+            Box realBox = (Box) box.getKey();
+            if (realBox.getBoxGoal() != null && State.realBoardObjectsById.get(n.getAgentId()).getColor().equals(realBox.getColor())) {
+                Coordinate newCoordinate = box.getValue();
+                State previousState = n.parent;
+                Coordinate previousCoordinate = previousState.getLocalCoordinateById().get(realBox.getId());
+                Coordinate boxGoalCoordinate =  realBox.getBoxGoal().getCoordinate();
+                if(boxGoalCoordinate.equals(previousCoordinate) && !boxGoalCoordinate.equals(newCoordinate)) {
+                    sum += 10;
+                }
+            }
+        }
+*/
 
         //Get the minimum distance from each box movable by the agent to its assigned goal and add the minimum distance to the Sum
         for (HashMap.Entry<BoardObject, Coordinate> box : coordinateByBox.entrySet()) {
-            if (State.realBoardObjectsById.get(n.getAgentId()).getColor().equals(box.getKey().getColor())) {
-                double distanceMinimum = getMinimumDistanceFromBoxToAssignedGoal((Box) box.getKey(), box.getValue(), method);
-                sum += distanceMinimum;
+            Box realBox = (Box) box.getKey();
+            if (realBox.getBoxGoal() != null && State.realBoardObjectsById.get(n.getAgentId()).getColor().equals(realBox.getColor())) {
+                double distanceMinimum = 1 + getMinimumDistanceFromBoxToAssignedGoal(realBox, box.getValue(), method);
+                sum += realBox.getBoxGoal().getCoordinate().equals(box.getValue()) ? 0 : distanceMinimum;
             }
         }
+
+
         return sum;
     }
 

@@ -7,7 +7,6 @@ import java.util.*;
 
 import static java.lang.Character.toLowerCase;
 
-// TODO UPDATE WITH STATE CHANGES
 public class SearchClient {
     public State initialState;
     public ArrayList<Goal> highGoalQueue = new ArrayList<>();
@@ -19,6 +18,7 @@ public class SearchClient {
     public State[] latestStateArray;
     public String[] latestServerOutput;
     public HashMap<String, String> colors = new HashMap<>(); //All colors
+    public Boolean isMA; //SA if 1 at the end of the file reading, else MA
 
     public SearchClient(BufferedReader serverMessages) throws Exception {
 
@@ -52,26 +52,29 @@ public class SearchClient {
             // Check if all goals priority are inferior to the first element of goalQueue (For instance if
             // only one agent can fill the first case of a deadEnd)
             // Questions the goal ordering, should we first fill every first case of a deadend or fill a deadend at a time
-            for (Agent agent : agentList) {
-                if (!agent.isWaiting && agent.getCurrentGoal() != null) {
 
-                    // High priority goals has to be finished in order
-                    if (agent.getCurrentGoal().getPriority() > State.NORMAL_GOAL_PRIORITY
-                            && !highGoalQueue.isEmpty()
-                            && agent.getCurrentGoal().getPriority() < highGoalQueue.get(0).getPriority()) {
-                        agent.requeueCurrentGoal(highGoalQueue);
-                        continue;
-                    }
+            if (isMA) {
+                for (Agent agent : agentList) {
+                    if (!agent.isWaiting && agent.getCurrentGoal() != null) {
 
-                    // Low priority has to wait for all the other before beginning
-                    if (agent.getCurrentGoal().getPriority() == State.LOW_GOAL_PRIORITY
-                            && !normalGoalQueue.isEmpty()
-                            && !highGoalQueue.isEmpty()) {
-                        agent.requeueCurrentGoal(lowGoalQueue);
-                        continue;
+                        // High priority goals has to be finished in order
+                        if (agent.getCurrentGoal().getPriority() > State.NORMAL_GOAL_PRIORITY
+                                && !highGoalQueue.isEmpty()
+                                && agent.getCurrentGoal().getPriority() < highGoalQueue.get(0).getPriority()) {
+                            agent.requeueCurrentGoal(highGoalQueue);
+                            continue;
+                        }
+
+                        // Low priority has to wait for all the other before beginning
+                        if (agent.getCurrentGoal().getPriority() == State.LOW_GOAL_PRIORITY
+                                && !normalGoalQueue.isEmpty()
+                                && !highGoalQueue.isEmpty()) {
+                            agent.requeueCurrentGoal(lowGoalQueue);
+                        }
                     }
                 }
             }
+
 
             // Sort by goal priority
             agentListByPriority.sort(AgentGoalComparator);
@@ -80,47 +83,52 @@ public class SearchClient {
             for (Agent agent : agentListByPriority) {
                 if (agent.getCurrentGoal() != null || agent.moveToCornerCaseGoal || agent.destinationGoal != null) {
 
-                    // Strategy choice
-                    //ArrayList<State> plan = Search(new Strategy.StrategyBFS(), agent, problemType.COMPLETE);
                     ArrayList<State> plan;
-                    if (!agent.isWaiting) { // if is waiting, already has a plan
+
+                    if (!agent.isWaiting) {
+
+                        // Strategy choice
                         plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.COMPLETE);
-                        //plan = Search(new Strategy.StrategyDFS(), agent, problemType.COMPLETE);
-                    } else {
+
+                        if (plan == null) {
+                            System.err.println("Solution not found, try relaxed problem");
+                            // TODO TRY  RElAXED-------------------------------------------------------------------------------------------------------------------------------
+                            //plan = Search(new Strategy.StrategyBestFirst(new Heuristic.AStar()), agent, problemType.RELAXED);
+                        }
+
+                        if (plan != null) {
+
+                            // add NoOP to let the agent who has priority finish first
+                            int planSize = plan.size();
+                            if (planSize < minLength) {
+                                for (int i = 0; i < minLength - planSize + 1; i++) {
+                                    State noOpState = plan.get(0).getCopy();
+                                    noOpState.action = null;
+                                    plan.add(0, noOpState);
+                                }
+                            }
+
+                            ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
+                            minLength = plan.size();
+                        } else {
+                            System.err.println("Solution could not be found");
+                        }
+                    } else { // if is waiting, already has a plan
                         //System.err.println(agent.getId() + " already have a plan");
                         plan = planByAgent.get(agent);
                     }
 
-                    if (plan != null && !agent.isWaiting) {
-
-                        // add NoOP to let the agent who has priority finish first
-                        int planSize = plan.size();
-                        if (planSize < minLength) {
-                            for (int i = 0; i < minLength - planSize + 1; i++) {
-                                State noOpState = plan.get(0).getCopy();
-                                noOpState.action = null;
-                                plan.add(0, noOpState);
-                            }
-                        }
-
-                        // TODO maybe if change plan to help someone, should do something with it
-                        ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
-                        minLength = plan.size();
-                    } else if (!agent.isWaiting) {
-                        System.err.println("Solution could not be found");
-                    }
                 }
             }
 
-            // Keep track of previous path of agent. TODO If there is a conflict, trackback  until no conflict or do something else
-            for(Map.Entry<Agent,ArrayList<State>> pair : planByAgent.entrySet()){
+            // Keep track of previous path of agent.
+            for (Map.Entry<Agent, ArrayList<State>> pair : planByAgent.entrySet()) {
                 pair.getKey().plan = pair.getValue();
             }
 
             // Execute as long as possible
             boolean cont = true;
             while (cont) {
-                // TODO When a box is removed from it's goal it has to go back into the queue list
                 cont = sendNextStepToServer(serverMessages);
                 boolean status = State.updateStaticMap(latestStateArray, latestServerOutput);
                 /*
@@ -132,7 +140,7 @@ public class SearchClient {
                 */
             }
 
-            /** TODO Error handling
+            /**
              boolean error = false;
              for (int i = 0; i < latestServerOutput.length; i++) {
              if (latestServerOutput[i] != null && latestServerOutput[i].equals("false")) {
@@ -185,7 +193,6 @@ public class SearchClient {
 
     private void readMapFromServer(BufferedReader serverMessages) throws Exception {
 
-        boolean isMA; //SA if 1 at the end of the file reading, else MA
         List<String> serverMessageList = new ArrayList<>(); //All lines of the Initial level
         int max_col = 0; //Maximum column reached
         int row = 0; //Iteration variable
@@ -209,7 +216,7 @@ public class SearchClient {
                     break;
 
                 case 2://Level Name
-                    isMA = toLowerCase(line.charAt(0)) != 's';
+                    isMA = toLowerCase(line.charAt(0)) == 'm';
                     //No action needed. Name of the level can be saved here.
                     break;
 
@@ -496,8 +503,6 @@ public class SearchClient {
             State.corridorList.add(tempCorridorList);
         }
 
-        // TODO classify normal goals between them (for instance goals that are stuck between each other)
-
         /*
         // Test things up
         HashMap<Coordinate, String> testMap = new HashMap<>();
@@ -642,13 +647,13 @@ public class SearchClient {
         int totalGoals = highGoalQueue.size() + normalGoalQueue.size() + lowGoalQueue.size();
         double[][] scores = new double[totalGoals][agentList.size()];
 
-        if(totalGoals > 0) {
+        if (totalGoals > 0) {
             for (Agent agent : agentList) {
                 String colorToMatch = agent.getColor();
 
                 for (Goal tempGoal : highGoalQueue) {
 
-                    if (tempGoal.getColor() == colorToMatch) {
+                    if (tempGoal.getColor().equals(colorToMatch)) {
                         Box boxOfGoal = tempGoal.getAttachedBox();
                         coord1 = State.realCoordinateById.get(boxOfGoal.getId());
                         coord2 = State.realCoordinateById.get(agent.getId());
@@ -748,13 +753,13 @@ public class SearchClient {
                             bestGoal = highGoalQueue.get(k);
                             agent.setCurrentGoal(bestGoal);
                             highGoalsToRemove.add(bestGoal);
-                        
+
                         } else if (scores[k][jobs[k]] >= 2500 && scores[k][jobs[k]] < 5000) { //Agent has been assigned a normal priority goal
 
                             bestGoal = normalGoalQueue.get(k - highGoalQueue.size());
                             agent.setCurrentGoal(bestGoal);
                             normalGoalsToRemove.add(bestGoal);
-                        
+
                         } else if (scores[k][jobs[k]] >= 5000) { //Agent has been assigned a low priority goal
 
                             bestGoal = lowGoalQueue.get(k - highGoalQueue.size() - normalGoalQueue.size());
@@ -764,8 +769,8 @@ public class SearchClient {
                         }
 
                         //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal.getId()+ " (" + scores[k][jobs[k]] + ")");
-                    
-                    } else if (scores[k][jobs[k]] >= 7500){
+
+                    } else if (scores[k][jobs[k]] >= 7500) {
 
                         //Agent has no goal or an impossible goal
                         agent = agentList.get(jobs[k]);
@@ -777,23 +782,23 @@ public class SearchClient {
                 }
             }
 
-            for(Goal goal : highGoalsToRemove){
+            for (Goal goal : highGoalsToRemove) {
                 highGoalQueue.remove(goal);
             }
-            for(Goal goal : normalGoalsToRemove){
+            for (Goal goal : normalGoalsToRemove) {
                 normalGoalQueue.remove(goal);
             }
-            for(Goal goal : lowGoalsToRemove){
+            for (Goal goal : lowGoalsToRemove) {
                 lowGoalQueue.remove(goal);
             }
 
 
         } else {
-            for (Agent agent : agentList){
+            for (Agent agent : agentList) {
                 Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
-                    if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
-                        agent.destinationGoal = destinationGoal;
-                    }
+                if (destinationGoal != null && !State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
+                    agent.destinationGoal = destinationGoal;
+                }
             }
         }
     }
@@ -807,30 +812,30 @@ public class SearchClient {
         return priority2 + moveToCorner2 - priority1 - moveToCorner1;
     };
 
-    /* TO REMOVE IF GOAL BIDS WORK
+    // TO REMOVE IF GOAL BIDS WORK
     public void updateGoal(Agent agent) {
-        Goal bestGoal = null;
+        Goal bestGoal;
 
         if (!agent.isWaiting && agent.getCurrentGoal() == null) {
 
-            // Get high goal
-            bestGoal = findBestGoal(highGoalQueue, agent);
-
-            if(bestGoal != null){
-                agent.setCurrentGoal(bestGoal);
-                highGoalQueue.remove(bestGoal);
+            for (Goal tempGoal : highGoalQueue) {
+                if (tempGoal.getColor().equals(agent.getColor())) {
+                    agent.setCurrentGoal(tempGoal);
+                    highGoalQueue.remove(tempGoal);
+                    break;
+                }
             }
 
-            // or get normal goal // TODO get the closest goal of agent ---------------------------------------------------------------------------------------------------------------------
+            // or get normal goal
             if (agent.getCurrentGoal() == null) {
 
                 bestGoal = findBestGoal(normalGoalQueue, agent);
 
-                if(bestGoal != null){
+                if (bestGoal != null) {
                     agent.setCurrentGoal(bestGoal);
                     normalGoalQueue.remove(bestGoal);
                 }
-                
+
             }
 
             // or get low goal queue
@@ -838,7 +843,7 @@ public class SearchClient {
 
                 bestGoal = findBestGoal(lowGoalQueue, agent);
 
-                if(bestGoal != null){
+                if (bestGoal != null) {
                     agent.setCurrentGoal(bestGoal);
                     lowGoalQueue.remove(bestGoal);
                 }
@@ -851,16 +856,14 @@ public class SearchClient {
                 }
             }
 
-            // TODO check if there is a corner case available
-            // TODO put the agent back to their goal position
-            // if no goal left for him
+            // TODO if no goal left for him -------------------------------------------------------------
             //agent.moveToCornerCaseGoal = agent.getCurrentGoal() == null;
         } else {
-            // TODO when there is a conflict for instance
+            // when there is a conflict for instance
         }
     }
 
-    
+
     public Goal findBestGoal(ArrayList<Goal> goalQueue, Agent agent) {
 
         Goal bestGoal = null;
@@ -875,24 +878,20 @@ public class SearchClient {
                 //Original distance from agent to box position + original distance from box to its goal
                 double metric = Heuristic.pullDistance(coord1, coord2) + boxOfGoal.getBoxGoalDistance();
 
-                System.err.println("----- Agent " + agent.getId() + " is analyzing goal " + tempGoal.getId() + " at distance " + metric);
+                //System.err.println("----- Agent " + agent.getId() + " is analyzing goal " + tempGoal.getId() + " at distance " + metric);
 
-                if(metric < bestMetric) {
+                if (metric < bestMetric) {
                     bestGoal = tempGoal;
                     bestMetric = metric;
                 }
             }
         }
 
-        return(bestGoal);
+        return (bestGoal);
     }
-    */
 
     public ArrayList<State> Search(Strategy strategy, Agent agent, problemType typeOfProblem) {
 
-        // TODO DEFINE WHAT IS INITIAL STATE, it's here we can choose to use easier problem or full problem, for now it takes the board as it is.
-
-        // TODO Decide if the box should store a goal or the goal store a box.
         State firstState;
         if (agent.getCurrentGoal() != null) {
             System.err.println("Agent " + agent.getId() + " finding solution for goal " + (agent.getCurrentGoal()));
@@ -905,7 +904,12 @@ public class SearchClient {
             firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId());
         }
 
-        //System.err.println(firstState);
+        if(typeOfProblem == problemType.RELAXED){
+            firstState.localCoordinateById.entrySet().removeIf(entry -> !colors.get(entry.getKey().substring(0, 1)).equals(agent.getColor()));
+            firstState.localIdByCoordinate.entrySet().removeIf(entry -> !colors.get(entry.getValue().substring(0, 1)).equals(agent.getColor()));
+        }
+
+        System.err.println(firstState);
 
         strategy.addToFrontier(firstState);
 
@@ -958,7 +962,7 @@ public class SearchClient {
                     planByAgent.get(agent).remove(0);
                     actionString = "NoOp";
 
-                } else if (checkNextStep(next)) { // check possible issues corridor/deadEnd TODO for now if not valid move put agent to wait
+                } else if (checkNextStep(next)) { // check possible issues corridor/deadEnd
                     this.latestStateArray[agentNumber] = next;
                     planByAgent.get(agent).remove(0);
                     actionString = next.action.toString();
@@ -978,7 +982,7 @@ public class SearchClient {
                 latestState.action = null; // Stay at the same state except that there is no action
 
                 // put goals to null for next iteration
-                agent.setCurrentGoal(null); // TODO What happens if execution fails in your last action? must update current goal to null somewhere
+                agent.setCurrentGoal(null);
                 Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
                 if (destinationGoal != null && State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
                     agent.destinationGoal = null;

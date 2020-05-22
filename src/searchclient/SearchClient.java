@@ -931,7 +931,7 @@ public class SearchClient {
         while (true) {
 
             // TODO Iteration limit ----------------------------------------------------------------------------------------------------------------------------------------
-            if( iterationLimit == 100){
+            if( iterationLimit == 200){
                 //System.err.println("iteration limit reached");
                 return null;
             }

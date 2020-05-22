@@ -804,7 +804,7 @@ public class SearchClient {
 
                         }
 
-                        System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
+                        //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
                     
                     } else if (scores[k][jobs[k]] >= 9998){
 

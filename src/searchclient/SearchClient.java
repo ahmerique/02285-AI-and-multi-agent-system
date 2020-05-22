@@ -106,7 +106,7 @@ public class SearchClient {
 
                         // add NoOP to let the agent who has priority finish first
                         int planSize = plan.size();
-                        if (planSize < minLength) {
+                        if (planSize <= minLength && planSize > 0) {
                             for (int i = 0; i < minLength - planSize + 1; i++) {
                                 State noOpState = plan.get(0).getCopy();
                                 noOpState.action = null;
@@ -689,7 +689,8 @@ public class SearchClient {
                         //Original distance from agent to box position + original distance from box to its goal
                         double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
                         // !!! ONLY WORKS IF MAX DEPTH OF DEAD-END IS <~25
-                        scores[j][i] = metric + ((1000 - tempGoal.getPriority()) * 200);
+                        if(metric<5000){scores[j][i] = metric + ((1000 - tempGoal.getPriority()) * 200);}
+                        else{scores[j][i] = 10000;}
 
                     } else {
                         scores[j][i] = 10000;
@@ -706,7 +707,9 @@ public class SearchClient {
                         coord2 = State.realCoordinateById.get(agent.getId());
                         //Original distance from agent to box position + original distance from box to its goal + 5000
                         double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
-                        scores[j][i] = metric + 5000;
+                        if(metric<5000){scores[j][i] = metric + 5000;}
+                        else{scores[j][i] = 10000;}
+                        
 
                     } else {
                         scores[j][i] = 10000;
@@ -723,7 +726,8 @@ public class SearchClient {
                         coord2 = State.realCoordinateById.get(agent.getId());
                         //Original distance from agent to box position + original distance from box to its goal + 7500
                         double metric = Heuristic.pullDistance(coord1, coord2, colorToMatch) + boxOfGoal.getBoxGoalDistance();
-                        scores[j][i] = metric + 7500;
+                        if(metric<5000){scores[j][i] = metric + 7500;}
+                        else{scores[j][i] = 10000;}
 
                     } else {
                         scores[j][i] = 10000;
@@ -800,7 +804,7 @@ public class SearchClient {
 
                         }
 
-                        //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
+                        System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
                     
                     } else if (scores[k][jobs[k]] >= 9998){
 

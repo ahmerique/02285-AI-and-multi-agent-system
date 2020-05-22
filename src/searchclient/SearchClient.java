@@ -111,16 +111,18 @@ public class SearchClient {
 
                             // add NoOP to let the agent who has priority finish first
                             int planSize = plan.size();
-                            if (planSize < minLength) {
+
+                            //if (planSize <= minLength && (agent.destinationGoal != null || (agent.getCurrentGoal() != null && agent.getCurrentGoal().getPriority()>State.NORMAL_GOAL_PRIORITY))){
+                            if (planSize <= minLength && planSize > 0) {
                                 for (int i = 0; i < minLength - planSize + 1; i++) {
                                     State noOpState = plan.get(0).getCopy();
                                     noOpState.action = null;
                                     plan.add(0, noOpState);
                                 }
                             }
+                            minLength = plan.size();
 
                             ArrayList<State> previousPlan = planByAgent.replace(agent, plan);
-                            minLength = plan.size();
                         } else {
                             System.err.println("Solution could not be found");
                         }
@@ -210,8 +212,8 @@ public class SearchClient {
                 //Verify that no goal is missing. This occurs if a box that was on its goal has been pushed.
                 for (Box box : setBoxes) {
                     Goal goal = box.getBoxGoal();
-                    if(!(State.realCoordinateById.get(box.getId()).equals(State.goalWithCoordinate.get(goal))) && goal != null){
-                        if(!(highGoalQueue.contains(goal) || normalGoalQueue.contains(goal) || lowGoalQueue.contains(goal))){
+                    if (!(State.realCoordinateById.get(box.getId()).equals(State.goalWithCoordinate.get(goal))) && goal != null) {
+                        if (!(highGoalQueue.contains(goal) || normalGoalQueue.contains(goal) || lowGoalQueue.contains(goal))) {
 
                             //System.err.println("--- Append goal : " + goal);
                             int priority = goal.getPriority();
@@ -807,7 +809,7 @@ public class SearchClient {
 
                         //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
 
-                    } else if (scores[k][jobs[k]] >= 9998){
+                    } else if (scores[k][jobs[k]] >= 9998) {
 
                         //Agent has no goal or an impossible goal
                         agent = agentList.get(jobs[k]);
@@ -941,7 +943,7 @@ public class SearchClient {
             firstState = new State(State.realCoordinateById, State.realIdByCoordinate, agent.getId());
         }
 
-        if(typeOfProblem == problemType.RELAXED){
+        if (typeOfProblem == problemType.RELAXED) {
             firstState.localCoordinateById.entrySet().removeIf(entry -> !colors.get(entry.getKey().substring(0, 1)).equals(agent.getColor()));
             firstState.localIdByCoordinate.entrySet().removeIf(entry -> !colors.get(entry.getValue().substring(0, 1)).equals(agent.getColor()));
         }
@@ -1018,8 +1020,17 @@ public class SearchClient {
                 State latestState = this.latestStateArray[agentNumber];
                 latestState.action = null; // Stay at the same state except that there is no action
 
-                // put goals to null for next iteration
-                agent.setCurrentGoal(null);
+                // put goals to null for next iteration if box on goal
+                if (latestState.boxId != null) {
+                    Coordinate boxCoordinate = latestState.localCoordinateById.get(latestState.boxId);
+                    Box box = (Box) State.realBoardObjectsById.get(latestState.boxId);
+                    Coordinate goalCoordinate = box.getBoxGoal().getCoordinate();
+                    if (boxCoordinate.equals(goalCoordinate)) {
+                        agent.setCurrentGoal(null);
+                    }
+                }
+
+                // put destination to null if agent on destination
                 Coordinate destinationGoal = State.agentGoalWithCoordinate.get(agent.getId());
                 if (destinationGoal != null && State.realCoordinateById.get(agent.getId()).equals(destinationGoal)) {
                     agent.destinationGoal = null;

@@ -830,9 +830,9 @@ public class SearchClient {
 
                         }
 
-                        //System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
-
-                    } else if (scores[k][jobs[k]] >= 9998) {
+                        System.err.println("----------- Pair = " + agent.getId() + " with " + bestGoal+ " (" + scores[k][jobs[k]] + ")");
+                    
+                    } else if (scores[k][jobs[k]] >= 9998){
 
                         //Agent has no goal or an impossible goal
                         agent = agentList.get(jobs[k]);
